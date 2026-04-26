@@ -1,0 +1,24 @@
+const db = require('../config/db');
+
+const inicio = (req, res) => {
+  res.json({ mensaje: 'API funcionando correctamente con MySQL' });
+};
+
+const pruebaBD = (req, res) => {
+  db.query('SELECT DATABASE() AS baseActual', (err, result) => {
+    if (err) {
+      console.error('Error probando la base de datos:', err);
+      return res.status(500).json({
+        error: 'Error probando la base de datos',
+        detalle: err.message
+      });
+    }
+
+    res.json(result);
+  });
+};
+
+module.exports = {
+  inicio,
+  pruebaBD
+};

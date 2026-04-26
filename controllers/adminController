@@ -1,0 +1,56 @@
+const db = require('../config/db');
+
+const obtenerUsuarios = (req, res) => {
+  const sql = 'SELECT * FROM usuarios';
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      console.error('Error consultando usuarios:', err);
+      return res.status(500).json({
+        error: 'Error consultando usuarios',
+        detalle: err.message
+      });
+    }
+
+    res.json(result);
+  });
+};
+
+const crearUsuario = (req, res) => {
+  const { nombre, apellidos, email, password, rolID } = req.body;
+
+  if (!nombre || !apellidos || !email || !password || !rolID) {
+    return res.status(400).json({
+      error: 'Faltan datos obligatorios'
+    });
+  }
+
+  const sql = `
+    INSERT INTO Usuarios (Nombre, Apellidos, Email, Password_hash, RolID)
+    VALUES (?, ?, ?, ?, ?)
+  `;
+
+  db.query(
+    sql,
+    [nombre, apellidos, email, password, rolID],
+    (err, result) => {
+      if (err) {
+        console.error('Error insertando usuario:', err);
+        return res.status(500).json({
+          error: 'Error insertando usuario',
+          detalle: err.message
+        });
+      }
+
+      res.json({
+        mensaje: 'Usuario insertado correctamente',
+        idInsertado: result.insertId
+      });
+    }
+  );
+};
+
+module.exports = {
+  obtenerUsuarios,
+  crearUsuario
+};
