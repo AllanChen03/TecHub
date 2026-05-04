@@ -8,7 +8,9 @@ const admin = require('./routes/admin');
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json())
+
+app.use(express.static('public'));
 
 app.use('/', usuario);
 app.use('/admin', admin);

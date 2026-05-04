@@ -1,4 +1,6 @@
-const db = require('../config/db');
+const db = require('../../config/db');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 const inicio = (req, res) => {
   res.json({ mensaje: 'API funcionando correctamente con MySQL' });

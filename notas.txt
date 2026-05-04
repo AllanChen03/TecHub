@@ -1,2 +1,5 @@
 npm install dotenv
 npm install express mssql cors
+npm install jsonwebtoken
+npm install bcrypt
+npm install multer

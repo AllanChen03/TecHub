@@ -1,0 +1,127 @@
+const db = require('../../config/db');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken'); 
+
+const loginAdmin = async (req, res) => {
+  const { email, password } = req.body;
+
+  // 1. Validar que vengan los datos
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Por favor ingrese email y contraseña' });
+  }
+
+  // 2. Buscar por email y asegurar que el RolID sea 1 (Administrador)
+  const sql = 'SELECT * FROM Usuarios WHERE Email = ? AND RolID = 1';
+
+  db.query(sql, [email], async (err, results) => {
+    if (err) {
+      console.error('Error buscando administrador:', err);
+      return res.status(500).json({ error: 'Error interno del servidor' });
+    }
+
+    // Si no hay resultados, el correo no existe O el usuario existe pero NO es administrador
+    if (results.length === 0) {
+      return res.status(401).json({ error: 'Credenciales inválidas o no tienes permisos de administrador' });
+    }
+
+    const admin = results[0];
+
+    try {
+      // 3. Comparar la contraseña ingresada con el hash
+      const passwordValida = await bcrypt.compare(password, admin.Password_hash);
+
+      if (!passwordValida) {
+        return res.status(401).json({ error: 'Credenciales inválidas' });
+      }
+
+      // 4. Generamos el JWT para el Administrador
+      const payload = {
+        usuarioID: admin.UsuarioID,
+        rolID: admin.RolID
+      };
+
+      const token = jwt.sign(payload, process.env.JWT_SECRET, {
+        expiresIn: '4h' // A los admins les podemos dar una sesión más larga si queremos (ej. 4 horas)
+      });
+
+      // 5. Enviamos la respuesta exitosa
+      res.json({
+        mensaje: 'Inicio de sesión de Administrador exitoso',
+        token: token,
+        admin: {
+          id: admin.UsuarioID,
+          nombre: admin.Nombre,
+          apellidos: admin.Apellidos,
+          rolID: admin.RolID
+        }
+      });
+
+    } catch (error) {
+      console.error('Error al verificar la contraseña:', error);
+      res.status(500).json({ error: 'Error interno al procesar el login' });
+    }
+  });
+};
+
+const obtenerUsuarios = async(req, res) => {
+  const sql = 'SELECT * FROM usuarios';
+
+  db.query(sql, (err, result) => {
+    if (err) {
+      console.error('Error consultando usuarios:', err);
+      return res.status(500).json({
+        error: 'Error consultando usuarios',
+        detalle: err.message
+      });
+    }
+
+    res.json(result);
+  });
+};
+
+const crearUsuario = async(req, res) => {
+  const { nombre, apellidos, email, password, rolID } = req.body;
+
+  if (!nombre || !apellidos || !email || !password || !rolID) {
+    return res.status(400).json({
+      error: 'Faltan datos obligatorios'
+    });
+  }
+
+try {
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    const sql = `
+      INSERT INTO Usuarios (Nombre, Apellidos, Email, Password_hash, RolID)
+      VALUES (?, ?, ?, ?, ?)
+    `;
+    db.query(
+      sql,
+      [nombre, apellidos, email, passwordHash, rolID], 
+      (err, result) => {
+        if (err) {
+          console.error('Error insertando usuario:', err);
+          return res.status(500).json({
+            error: 'Error insertando usuario',
+            detalle: err.message
+          });
+        }
+
+        res.json({
+          mensaje: 'Usuario insertado correctamente',
+          idInsertado: result.insertId
+        });
+      }
+    );
+  } catch (error) {
+    console.error('Error al encriptar la contraseña:', error);
+    return res.status(500).json({ error: 'Error interno del servidor al procesar la contraseña' });
+  }
+};
+
+module.exports = {
+  obtenerUsuarios,
+  crearUsuario,
+  loginAdmin
+};
