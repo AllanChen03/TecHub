@@ -22,7 +22,8 @@ CREATE TABLE Usuarios (
 -- Categorias
 CREATE TABLE Categorias (
     CategoriaID INT AUTO_INCREMENT PRIMARY KEY,
-    NombreCategoria VARCHAR(100) NOT NULL
+    NombreCategoria VARCHAR(100) NOT NULL,
+    ImagenPath VARCHAR(255)
 );
 
 -- Sedes
@@ -55,7 +56,7 @@ CREATE TABLE Productos (
     NombreProducto VARCHAR(100) NOT NULL,
     DescripcionProducto NVARCHAR(500),
     Precio DECIMAL(10,2),
-    ImagePath VARCHAR(255),
+    ImagenPath VARCHAR(255),
     CategoriaID INT,
     UsuarioID INT,
     SedeID INT,

@@ -11,7 +11,7 @@ const loginAdmin = async (req, res) => {
   }
 
   // 2. Buscar por email y asegurar que el RolID sea 1 (Administrador)
-  const sql = 'SELECT * FROM Usuarios WHERE Email = ? AND RolID = 1';
+  const sql = 'SELECT * FROM usuarios WHERE Email = ? AND RolID = 1';
 
   db.query(sql, [email], async (err, results) => {
     if (err) {
@@ -93,7 +93,7 @@ try {
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
     const sql = `
-      INSERT INTO Usuarios (Nombre, Apellidos, Email, Password_hash, RolID)
+      INSERT INTO usuarios (Nombre, Apellidos, Email, Password_hash, RolID)
       VALUES (?, ?, ?, ?, ?)
     `;
     db.query(
@@ -120,8 +120,50 @@ try {
   }
 };
 
+const actualizarUsuario = (req, res) => {
+  const { id } = req.params; 
+  const { nombre, apellidos, email, rolID } = req.body;
+
+  const sql = 'UPDATE usuarios SET Nombre = ?, Apellidos = ?, Email = ?, RolID = ? WHERE UsuarioID = ?';
+  
+  db.query(sql, [nombre, apellidos, email, rolID, id], (err, result) => {
+    if (err) {
+      console.error('Error al actualizar usuario:', err);
+      return res.status(500).json({ error: 'Error interno al actualizar el usuario' });
+    }
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    res.json({ mensaje: 'Usuario actualizado correctamente' });
+  });
+};
+
+const eliminarUsuario = (req, res) => {
+  const { id } = req.params;
+
+  const sql = 'DELETE FROM usuarios WHERE UsuarioID = ?';
+  
+  db.query(sql, [id], (err, result) => {
+    if (err) {
+      console.error('Error al eliminar usuario:', err);
+      return res.status(500).json({ error: 'Error al eliminar el usuario.' });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    res.json({ mensaje: 'Usuario eliminado correctamente' });
+  });
+};
+
 module.exports = {
   obtenerUsuarios,
   crearUsuario,
-  loginAdmin
+  loginAdmin,
+  actualizarUsuario,
+  eliminarUsuario
+
 };

@@ -1,7 +1,7 @@
 const db = require('../config/db');
 
 const obtenerCategorias = (req, res) => {
-  const sql = 'SELECT * FROM Categorias';
+  const sql = 'SELECT * FROM categorias';
   
   db.query(sql, (err, results) => {
     if (err) {
@@ -21,7 +21,7 @@ const crearCategoria = (req, res) => {
     return res.status(400).json({ error: 'El nombre de la categoría es obligatorio' });
   }
 
-  const sql = 'INSERT INTO Categorias (NombreCategoria, ImagenPath) VALUES (?, ?)';
+  const sql = 'INSERT INTO categorias (NombreCategoria, ImagenPath) VALUES (?, ?)';
   
   db.query(sql, [nombreCategoria, imagenPath], (err, result) => {
     if (err) {
