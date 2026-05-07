@@ -1,0 +1,140 @@
+const db = require('../../config/db');
+const bcrypt = require('bcrypt');
+const transporter = require('../../config/mailer');
+
+const crearUsuario = async (req, res) => {
+  const { nombre, apellidos, email, password, rolID } = req.body;
+
+  // 1. Validar que no falten datos
+  if (!nombre || !apellidos || !email || !password || !rolID) {
+    return res.status(400).json({ error: 'Faltan datos obligatorios' });
+  }
+
+  // 2. Validar que el correo sea institucional
+  if (!email.endsWith('@estudiantec.cr')) {
+    return res.status(400).json({ error: 'Solo se permiten correos institucionales (@estudiantec.cr)' });
+  }
+
+  try {
+    // 3. Encriptar la contraseña
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    // 4. Generar código de verificación de 6 dígitos
+    const codigoVerificacion = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // 5. Configurar el vencimiento (por ejemplo, 1 hora = 3600000 milisegundos)
+    // El driver de mysql2 entiende las fechas de JavaScript
+    const codigoVencimiento = new Date(Date.now() + 3600000); 
+
+    // 6. Insertar en la base de datos con Verificacion = false
+    const sql = `
+      INSERT INTO usuarios
+      (Nombre, Apellidos, Email, Password_hash, RolID, verificado, codigoVerificacion, codigoVencimiento)
+      VALUES (?, ?, ?, ?, ?, false, ?, ?)
+    `;
+
+    db.query(
+      sql,
+      [nombre, apellidos, email, passwordHash, rolID, codigoVerificacion, codigoVencimiento],
+      async (err, result) => {
+        if (err) {
+          console.error('Error insertando usuario:', err);
+          return res.status(500).json({ error: 'Error al registrar el usuario en la base de datos' });
+        }
+
+        // 7. Si se guardó en la BD, enviamos el correo electrónico
+        try {
+          const mailOptions = {
+            from: `"Equipo TecHub" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: 'Verifica tu cuenta en TecHub',
+            html: `
+              <h2>¡Hola, ${nombre}! Bienvenido a TecHub.</h2>
+              <p>Para activar tu cuenta, por favor ingresa el siguiente código de seguridad de 6 dígitos:</p>
+              <h1 style="color: #0056b3; letter-spacing: 5px;">${codigoVerificacion}</h1>
+              <p>Este código vencerá en 1 hora.</p>
+            `
+          };
+
+          await transporter.sendMail(mailOptions);
+
+          res.status(201).json({
+            mensaje: 'Usuario registrado. Por favor, revisa tu correo institucional para verificar tu cuenta.',
+            usuarioID: result.insertId
+          });
+
+        } catch (emailError) {
+          console.error('Error enviando el correo:', emailError);
+          res.status(500).json({ error: 'Usuario creado, pero hubo un error al enviar el correo de verificación' });
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Error interno:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+};
+
+const verificarCuenta = (req, res) => {
+  const { email, codigo } = req.body;
+
+  if (!email || !codigo) {
+    return res.status(400).json({ error: 'Se requiere el correo y el código de verificación' });
+  }
+
+  // 1. Buscamos al usuario por su email
+  const sqlBuscar = 'SELECT * FROM usuarios WHERE Email = ?';
+
+  db.query(sqlBuscar, [email], (err, results) => {
+    if (err || results.length === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    const usuario = results[0];
+
+    // 2. Verificar si ya está activa
+    // Dependiendo de cómo lea MySQL los booleanos, puede ser 1 o true
+    if (usuario.verificado === 1 || usuario.verificado === true) {
+      return res.status(400).json({ error: 'Esta cuenta ya se encuentra verificada' });
+    }
+
+    // 3. Comprobar si el código coincide
+    if (usuario.codigoVerificacion !== codigo) {
+      return res.status(400).json({ error: 'Código de verificación incorrecto' });
+    }
+
+    // 4. Comprobar si el código no ha vencido
+    const ahora = new Date();
+    if (ahora > new Date(usuario.codigoVencimiento)) {
+      return res.status(400).json({ error: 'El código ha expirado. Debes solicitar uno nuevo.' });
+    }
+
+    // 5. Si todo es correcto, actualizamos la tabla para activar al usuario
+    const sqlActualizar = `
+      UPDATE usuarios 
+      SET verificado = true, codigoVerificacion = NULL, codigoVencimiento = NULL 
+      WHERE Email = ?
+    `;
+
+    db.query(sqlActualizar, [email], (errUpdate, resultUpdate) => {
+      if (errUpdate) {
+        console.error('Error al actualizar verificación:', errUpdate);
+        return res.status(500).json({ error: 'Error al activar la cuenta' });
+      }
+
+      res.json({ mensaje: '¡Cuenta verificada con éxito! Ya puedes iniciar sesión.' });
+    });
+  });
+};
+
+// --- (Opcional) AQUÍ IRÍA TU FUNCIÓN DE LOGIN ---
+// const login = async (req, res) => { ... }
+
+
+// --- EXPORTAR TODAS LAS FUNCIONES ---
+module.exports = {
+  crearUsuario,
+  verificarCuenta
+  // login  <-- Descomenta esto si también mueves tu login aquí
+};

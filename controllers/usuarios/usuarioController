@@ -2,25 +2,53 @@ const db = require('../../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-const inicio = (req, res) => {
-  res.json({ mensaje: 'API funcionando correctamente con MySQL' });
-};
+const login = async (req, res) => {
+  const { email, password } = req.body;
 
-const pruebaBD = (req, res) => {
-  db.query('SELECT DATABASE() AS baseActual', (err, result) => {
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Se requiere email y contraseña' });
+  }
+
+  const sql = 'SELECT * FROM usuarios WHERE Email = ?';
+
+  db.query(sql, [email], async (err, results) => {
     if (err) {
-      console.error('Error probando la base de datos:', err);
-      return res.status(500).json({
-        error: 'Error probando la base de datos',
-        detalle: err.message
-      });
+      console.error('Error al iniciar sesión:', err);
+      return res.status(500).json({ error: 'Error interno del servidor' });
     }
 
-    res.json(result);
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    const usuario = results[0];
+
+    if (usuario.verificado === 0 || usuario.verificado === false) {
+      return res.status(403).json({ error: 'Por favor, verifica tu correo electrónico antes de iniciar sesión.' });
+    }
+
+    const passwordCorrecto = await bcrypt.compare(password, usuario.Password_hash);
+    
+    if (!passwordCorrecto) {
+      return res.status(401).json({ error: 'Contraseña incorrecta' });
+    }
+
+    const token = jwt.sign(
+      { 
+        id: usuario.UsuarioID, 
+        rol: usuario.RolID 
+      },
+      process.env.JWT_SECRET, 
+      { expiresIn: '2h' }    
+    );
+
+    res.json({ 
+      mensaje: 'Inicio de sesión exitoso', 
+      token: token 
+    });
   });
 };
 
 module.exports = {
-  inicio,
-  pruebaBD
+  login
 };
