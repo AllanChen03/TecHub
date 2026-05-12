@@ -1,5 +1,4 @@
 import { Link, useNavigate, useLocation } from "@tanstack/react-router";
-import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Bell, ShoppingBag, User } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
@@ -10,11 +9,10 @@ interface Props {
 }
 
 export function AppShell({ children, admin = false }: Props) {
-  const { user, logout, db } = useAuth();
   const nav = useNavigate();
   const loc = useLocation();
-  // Evita mismatch de hidratación: el conteo depende de localStorage (cliente)
   const [mounted, setMounted] = useState(false);
+  
   useEffect(() => setMounted(true), []);
 
   const userLinks = [
@@ -31,8 +29,6 @@ export function AppShell({ children, admin = false }: Props) {
     { to: "/admin/ordenes", label: "Órdenes" },
   ];
   const links = admin ? adminLinks : userLinks;
-
-  const unread = mounted ? db.notifications.filter((n) => n.userId === user?.id && !n.leido).length : 0;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -74,21 +70,9 @@ export function AppShell({ children, admin = false }: Props) {
               <Link
                 to="/app/notificaciones"
                 className="relative p-2 rounded-md hover:bg-sidebar-accent"
-                aria-label={
-                  mounted && unread > 0
-                    ? `Notificaciones, ${unread} sin leer`
-                    : "Notificaciones"
-                }
+                aria-label="Notificaciones"
               >
                 <Bell className="size-5" aria-hidden="true" />
-                {mounted && unread > 0 && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[10px] rounded-full size-4 flex items-center justify-center"
-                  >
-                    {unread}
-                  </span>
-                )}
               </Link>
             )}
             <Link
@@ -104,8 +88,12 @@ export function AppShell({ children, admin = false }: Props) {
               size="sm"
               className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               onClick={() => {
-                logout();
-                nav({ to: "/login" });
+                // Borramos el token real al cerrar sesión
+                if (typeof window !== "undefined") {
+                  localStorage.removeItem("techub_token");
+                  localStorage.removeItem("techub_user");
+                }
+                nav({ to: "/login", replace: true });
               }}
               aria-label="Cerrar sesión"
             >

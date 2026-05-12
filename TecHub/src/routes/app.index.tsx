@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 
 // Importamos la URL de tu backend
@@ -60,10 +60,10 @@ function HomePage() {
   }, []); // Los corchetes vacíos significan: "ejecuta esto solo una vez al abrir la página"
 
   // 3. El buscador ahora filtra los productos que llegaron de tu backend
-  const productosFiltrados = useMemo(
+const productosFiltrados = useMemo(
     () => productosBackend.filter((p: any) => 
-      // Ajusta 'p.Nombre' si tu columna en MySQL se llama diferente (ej. p.nombreProducto)
-      p.Nombre?.toLowerCase().includes(q.toLowerCase())
+      // Ahora usamos NombreProducto
+      p.NombreProducto?.toLowerCase().includes(q.toLowerCase())
     ),
     [productosBackend, q]
   );
@@ -90,24 +90,26 @@ function HomePage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {categorias.slice(0, 8).map((c: any) => (
             <Link
-              key={c.CategoriaID} // Ajusta si tu ID se llama diferente
+              key={c.CategoriaID} // Usando CategoriaID de tu MySQL
               to="/app/productos"
-              search={{ cat: c.Nombre }} // Ajusta 'c.Nombre' según tu BD
+              search={{ cat: c.NombreCategoria }} // Usando NombreCategoria
               className="bg-card border rounded-lg p-4 text-center hover:shadow-md hover:border-primary transition"
             >
-              {/* Aquí mostramos la imagen real que subiste con multer */}
+              {/* Aquí mostramos la imagen real o la inicial del nombre */}
               <div className="flex justify-center mb-2">
-                {c.Imagen ? (
+                {c.ImagenPath ? ( // Usando ImagenPath
                   <img 
-                    src={`${API_URL}${c.Imagen}`} 
-                    alt={c.Nombre} 
+                    src={`${API_URL}${c.ImagenPath}`} 
+                    alt={c.NombreCategoria} 
                     className="w-12 h-12 object-contain"
                   />
                 ) : (
-                  <div className="w-12 h-12 bg-muted rounded-full" /> // Placeholder si no hay imagen
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold text-xl">
+                    {c.NombreCategoria?.charAt(0)}
+                  </div> // Placeholder con la inicial de la categoría
                 )}
               </div>
-              <div className="text-sm font-medium">{c.Nombre}</div>
+              <div className="text-sm font-medium">{c.NombreCategoria}</div>
             </Link>
           ))}
         </div>
@@ -117,19 +119,37 @@ function HomePage() {
         <h2 className="font-semibold text-lg mb-3">Productos destacados</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {productosFiltrados.map((p: any) => (
-            <Link key={p.ProductoID} to="/app/productos/$id" params={{ id: p.ProductoID }}>
+            <Link 
+              key={p.ProductoID} // Usando ProductoID
+              to="/app/productos/$id" 
+              params={{ id: p.ProductoID }}
+            >
               <Card className="overflow-hidden hover:shadow-lg transition cursor-pointer h-full">
-                <div className="aspect-square bg-muted flex items-center justify-center text-6xl overflow-hidden">
-                  {p.Imagen ? (
-                    <img src={`${API_URL}${p.Imagen}`} alt={p.Nombre} className="w-full h-full object-cover" />
+                <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
+                  {p.ImagenPath ? ( // Usando ImagenPath
+                    <img 
+                      src={`${API_URL}${p.ImagenPath}`} 
+                      alt={p.NombreProducto} 
+                      className="w-full h-full object-cover" 
+                    />
                   ) : (
-                     <span className="text-sm text-gray-400">Sin imagen</span>
+                    <div className="flex flex-col items-center text-muted-foreground">
+                      <ShoppingBag className="size-8 opacity-20" />
+                      <span className="text-[10px] mt-1">Sin imagen</span>
+                    </div>
                   )}
                 </div>
                 <div className="p-3">
-                  <div className="font-medium text-sm line-clamp-1">{p.Nombre}</div>
-                  <div className="text-primary font-bold text-sm mt-1">₡{p.Precio?.toLocaleString()}</div>
-                  <div className="text-xs text-muted-foreground">{p.Condicion}</div>
+                  <div className="font-medium text-sm line-clamp-1">
+                    {p.NombreProducto} {/* Usando NombreProducto */}
+                  </div>
+                  <div className="text-primary font-bold text-sm mt-1">
+                    ₡{Number(p.Precio).toLocaleString()}
+                  </div>
+                  {/* Aquí podrías mostrar el CondicionID o hacer un JOIN en el backend para mostrar el texto */}
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">
+                    ID Condición: {p.CondicionID}
+                  </div>
                 </div>
               </Card>
             </Link>
