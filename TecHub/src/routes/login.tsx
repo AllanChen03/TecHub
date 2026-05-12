@@ -1,6 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,25 +8,49 @@ import { ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import techubHero from "@/assets/techub-hero.png";
 
+// Importamos la URL de tu backend
+import { API_URL } from "@/lib/config";
+
 export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
 function LoginPage() {
-  const { login } = useAuth();
   const nav = useNavigate();
-  const [email, setEmail] = useState("admin@tec.cr");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const u = login(email, password);
-    if (!u) {
-      toast.error("Credenciales incorrectas");
-      return;
+
+    try {
+      // 1. Petición HTTP a Node.js
+      const respuesta = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await respuesta.json();
+
+      if (respuesta.ok) {
+        // 2. Guardamos el "gafete virtual"
+        localStorage.setItem('techub_token', data.token); 
+        
+        toast.success("¡Inicio de sesión exitoso!");
+        
+        // 3. USAMOS NAV PARA LA REDIRECCIÓN FLUIDA
+        nav({ to: "/app" }); 
+        
+      } else {
+        toast.error(data.error || "Error al iniciar sesión");
+      }
+    } catch (error) {
+      console.error("Error conectando con el servidor:", error);
+      toast.error("Error de conexión con el servidor. Verifica que Node.js esté corriendo.");
     }
-    toast.success(`Bienvenido, ${u.nombre}`);
-    nav({ to: u.rol === "admin" ? "/admin" : "/app" });
   };
 
   return (
@@ -54,10 +77,8 @@ function LoginPage() {
               <Link to="/register" className="text-primary hover:underline">Crear cuenta</Link>
             </div>
             <div className="text-xs text-muted-foreground bg-muted p-3 rounded-md mt-4">
-              <p className="font-semibold mb-1">Cuentas demo:</p>
-              <p>admin@tec.cr / admin123 (administrador)</p>
-              <p>esilva@tec.cr / 123456 (vendedor)</p>
-              <p>jose@tec.cr / 123456 (comprador)</p>
+              <p className="font-semibold mb-1">Cuentas reales requeridas:</p>
+              <p>Por favor, utiliza una cuenta que hayas creado en tu base de datos y que ya esté verificada mediante el código de correo.</p>
             </div>
           </form>
         </Card>
