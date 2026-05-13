@@ -92,7 +92,7 @@ const productosFiltrados = useMemo(
             <Link
               key={c.CategoriaID} // Usando CategoriaID de tu MySQL
               to="/app/productos"
-              search={{ cat: c.NombreCategoria }} // Usando NombreCategoria
+              search={{categoriaID: c.CategoriaID }} 
               className="bg-card border rounded-lg p-4 text-center hover:shadow-md hover:border-primary transition"
             >
               {/* Aquí mostramos la imagen real o la inicial del nombre */}

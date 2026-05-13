@@ -1,78 +1,112 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useAuth } from "@/lib/auth";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Search, ShoppingBag, FilterX } from "lucide-react";
+import { API_URL } from "@/lib/config";
 
+// Definimos que esta ruta acepta "categoriaID" opcional en la URL (?categoriaID=1)
 export const Route = createFileRoute("/app/productos/")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    cat: typeof search.cat === "string" ? search.cat : undefined,
-  }),
-  component: ProductosPage,
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      categoriaID: search.categoriaID ? Number(search.categoriaID) : undefined,
+    };
+  },
+  component: ProductosCatalogPage,
 });
 
-function ProductosPage() {
-  const { db } = useAuth();
-  const { cat } = Route.useSearch();
-  const navigate = useNavigate();
+function ProductosCatalogPage() {
+  const { categoriaID } = Route.useSearch(); // Leemos el ID de la categoría
+  const [productos, setProductos] = useState([]);
+  const [busqueda, setBusqueda] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const productos = cat
-    ? db.products.filter((p) => p.categoria === cat)
-    : db.products;
+  useEffect(() => {
+    const fetchProductos = async () => {
+      try {
+        const token = localStorage.getItem('techub_token');
+        const res = await fetch(`${API_URL}/productos`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setProductos(data);
+        }
+      } catch (error) {
+        console.error("Error cargando productos", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProductos();
+  }, []);
+
+  // Lógica de filtrado
+  const productosFiltrados = useMemo(() => {
+    return productos.filter((p: any) => {
+      const cumpleCategoria = categoriaID 
+        ? Number(p.CategoriaID) === categoriaID 
+        : true;
+      const cumpleBusqueda = p.NombreProducto?.toLowerCase().includes(busqueda.toLowerCase());
+      return cumpleCategoria && cumpleBusqueda;
+    });
+  }, [productos, categoriaID, busqueda]);
+
+  if (loading) return <div className="p-10 text-center">Cargando catálogo...</div>;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">
-            {cat ? cat : "Todos los productos"}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {productos.length} {productos.length === 1 ? "producto" : "productos"}
-          </p>
+          <h1 className="text-2xl font-bold">Catálogo de Productos</h1>
+          {categoriaID && (
+            <p className="text-sm text-primary font-medium flex items-center gap-2">
+              Filtrando por categoría activa 
+              <Link to="/app/productos" className="text-xs bg-muted px-2 py-0.5 rounded hover:bg-destructive hover:text-white transition-colors">
+                Ver todo
+              </Link>
+            </p>
+          )}
         </div>
-        {cat && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate({ to: "/app/productos", search: {} })}
-          >
-            <X className="size-4" /> Quitar filtro
-          </Button>
-        )}
+        <div className="relative w-full md:max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input 
+            placeholder="Buscar productos..." 
+            className="pl-9"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+          />
+        </div>
       </div>
 
-      {cat && (
-        <div className="mb-4">
-          <Badge variant="secondary">Categoría: {cat}</Badge>
-        </div>
-      )}
-
-      {productos.length === 0 ? (
-        <Card className="p-8 text-center text-muted-foreground">
-          No hay productos en esta categoría.
-        </Card>
-      ) : (
+      {productosFiltrados.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {productos.map((p) => (
-            <Link key={p.id} to="/app/productos/$id" params={{ id: p.id }}>
+          {productosFiltrados.map((p: any) => (
+            <Link 
+              key={p.ProductoID} 
+              to="/app/productos/$id" 
+              params={{ id: String(p.ProductoID) }}
+            >
               <Card className="overflow-hidden hover:shadow-lg transition h-full">
-                <div className="aspect-square bg-muted flex items-center justify-center text-6xl overflow-hidden">
-                  {p.imagen?.startsWith("data:") || p.imagen?.startsWith("http") ? (
-                    <img src={p.imagen} alt={p.nombre} className="w-full h-full object-cover" />
-                  ) : (p.imagen)}
+                <div className="aspect-square bg-muted flex items-center justify-center">
+                  {p.ImagenPath ? (
+                    <img src={`${API_URL}${p.ImagenPath}`} alt={p.NombreProducto} className="w-full h-full object-cover" />
+                  ) : (
+                    <ShoppingBag className="size-10 opacity-10" />
+                  )}
                 </div>
-                <div className="p-3">
-                  <div className="font-medium text-sm line-clamp-1">{p.nombre}</div>
-                  <div className="text-primary font-bold text-sm mt-1">
-                    ₡{p.precio.toLocaleString()}
-                  </div>
-                  <div className="text-xs text-muted-foreground">{p.categoria}</div>
+                <div className="p-3 text-center">
+                  <h3 className="font-medium text-sm line-clamp-1">{p.NombreProducto}</h3>
+                  <p className="text-primary font-bold mt-1">₡{Number(p.Precio).toLocaleString()}</p>
                 </div>
               </Card>
             </Link>
           ))}
+        </div>
+      ) : (
+        <div className="py-20 text-center text-muted-foreground">
+          <FilterX className="size-12 mx-auto mb-4 opacity-20" />
+          <p>No hay productos que coincidan con tu búsqueda.</p>
         </div>
       )}
     </div>
