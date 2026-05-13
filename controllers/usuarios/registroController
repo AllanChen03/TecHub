@@ -23,9 +23,9 @@ const crearUsuario = async (req, res) => {
     // 4. Generar código de verificación de 6 dígitos
     const codigoVerificacion = Math.floor(100000 + Math.random() * 900000).toString();
     
-    // 5. Configurar el vencimiento (por ejemplo, 1 hora = 3600000 milisegundos)
+    // 5. Configurar el vencimiento (por ejemplo, 1 hora = 900000 milisegundos)
     // El driver de mysql2 entiende las fechas de JavaScript
-    const codigoVencimiento = new Date(Date.now() + 3600000); 
+    const codigoVencimiento = new Date(Date.now() + 900000); 
 
     // 6. Insertar en la base de datos con Verificacion = false
     const sql = `
@@ -128,13 +128,50 @@ const verificarCuenta = (req, res) => {
   });
 };
 
-// --- (Opcional) AQUÍ IRÍA TU FUNCIÓN DE LOGIN ---
-// const login = async (req, res) => { ... }
+const reenviarCodigoRegistro = (req, res) => {
+  const { email } = req.body;
+
+  if (!email) return res.status(400).json({ error: 'Email requerido' });
+
+  // 1. Verificamos que el usuario exista y NO esté verificado aún
+  db.query('SELECT * FROM usuarios WHERE Email = ?', [email], (err, results) => {
+    if (err || results.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const usuario = results[0];
+    if (usuario.verificado) return res.status(400).json({ error: 'Esta cuenta ya está activa' });
+
+    // 2. Generamos nuevo código (6 dígitos) y nueva expiración (1 hora)
+    const nuevoCodigo = Math.floor(100000 + Math.random() * 900000).toString();
+    const nuevaExpiracion = new Date(Date.now() + 900000);
+
+    // 3. Actualizamos la BD
+    db.query(
+      'UPDATE usuarios SET codigoVerificacion = ?, codigoVencimiento = ? WHERE Email = ?',
+      [nuevoCodigo, nuevaExpiracion, email],
+      async (errUpdate) => {
+        if (errUpdate) return res.status(500).json({ error: 'Error al generar nuevo código' });
+
+        // 4. Enviamos el nuevo correo
+        try {
+          await transporter.sendMail({
+            from: `"Equipo TecHub" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: 'Tu nuevo código de verificación - TecHub',
+            html: `<p>Hola, aquí tienes tu nuevo código: <b>${nuevoCodigo}</b>. Vence en 1 hora.</p>`
+          });
+          res.json({ mensaje: 'Se ha enviado un nuevo código a tu correo.' });
+        } catch (mailErr) {
+          res.status(500).json({ error: 'Error al enviar el correo' });
+        }
+      }
+    );
+  });
+};
 
 
 // --- EXPORTAR TODAS LAS FUNCIONES ---
 module.exports = {
   crearUsuario,
-  verificarCuenta
-  // login  <-- Descomenta esto si también mueves tu login aquí
+  verificarCuenta,
+  reenviarCodigoRegistro
 };

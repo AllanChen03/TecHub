@@ -31,6 +31,8 @@ function LoginPage() {
 
       const data = await respuesta.json();
 
+      // console.log("Respuesta exacta del Backend:", JSON.stringify(data, null, 2));
+
       if (!respuesta.ok) {
         toast.error(data.error || "Error al iniciar sesión");
         return;
@@ -41,16 +43,26 @@ function LoginPage() {
         return;
       }
 
-      // Guardamos el token real
+      // 1. Guardamos el token real
       localStorage.setItem("techub_token", data.token);
-      if (data.user) {
-        localStorage.setItem("techub_user", JSON.stringify(data.user));
-      }
+      
+      // 👇 LA MAGIA: Desencriptamos la información oculta en el Token 👇
+      // Un token JWT siempre tiene 3 partes divididas por un punto (.). La información va en el medio [1].
+      const payloadBase64 = data.token.split('.')[1];
+      const payloadDecodificado = JSON.parse(atob(payloadBase64)); 
+      
+      // 2. Guardamos el rol que venía dentro del token (es payloadDecodificado.rol)
+      localStorage.setItem("techub_rol", String(payloadDecodificado.rol));
 
       toast.success("¡Inicio de sesión exitoso!");
 
-      // Redirección — replace:true evita que "Atrás" vuelva al login
-      await nav({ to: "/app", replace: true });
+      // 3. Redirección Inteligente basándonos en el token desencriptado
+      if (payloadDecodificado.rol === 1) {
+        await nav({ to: "/admin", replace: true });
+      } else {
+        await nav({ to: "/app", replace: true });
+      }
+
     } catch (error) {
       console.error("Error conectando con el servidor:", error);
       toast.error("Error de conexión. Verifica que el backend esté corriendo.");

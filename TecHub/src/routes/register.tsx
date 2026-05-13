@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,9 +14,9 @@ export const Route = createFileRoute("/register")({
 
 function RegisterPage() {
   const nav = useNavigate();
-  // Manejamos dos pasos: 1 para datos iniciales, 2 para código de correo
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(1); // 1: Datos iniciales, 2: Código de verificación
   
+  // Datos del formulario
   const [formData, setFormData] = useState({
     nombre: "",
     apellidos: "",
@@ -27,16 +27,31 @@ function RegisterPage() {
   });
 
   const [codigo, setCodigo] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Estado para el temporizador de reenvío
+  const [timer, setTimer] = useState(0);
 
-  // FUNCIÓN 1: Registro Inicial
+  // Lógica del temporizador (cuenta regresiva)
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
+
+  // PASO 1: Enviar datos de registro
   const onRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validación de contraseñas iguales
     if (formData.password !== formData.confirmPassword) {
       return toast.error("Las contraseñas no coinciden. Por favor verifica.");
     }
 
+    setIsLoading(true);
     try {
       const res = await fetch(`${API_URL}/registro`, {
         method: 'POST',
@@ -54,40 +69,68 @@ function RegisterPage() {
 
       if (res.ok) {
         toast.success(data.mensaje || "Código de verificación enviado a tu correo");
-        setStep(2); // Pasamos al campo del código
+        setStep(2);
+        setTimer(60); // Inicia el temporizador de 60 seg al pasar al paso 2
       } else {
-        // Aquí capturamos el error de "correo ya registrado" que configuramos en el backend
         toast.error(data.error || "Hubo un error en el registro");
       }
     } catch (error) {
-      toast.error("No se pudo conectar con el servidor. Verifica que Node.js esté activo.");
+      toast.error("No se pudo conectar con el servidor.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // FUNCIÓN 2: Verificación del Código
+  // PASO 2: Verificar el código
   const onVerify = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
 
     try {
       const res = await fetch(`${API_URL}/verificar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: formData.email, 
-          codigo: codigo 
-        })
+        body: JSON.stringify({ email: formData.email, codigo })
       });
 
       const data = await res.json();
 
       if (res.ok) {
         toast.success(data.mensaje);
-        nav({ to: "/login" }); // Enviamos al login tras verificar con éxito
+        nav({ to: "/login" }); // Éxito -> Al login
       } else {
         toast.error(data.error || "Código incorrecto o expirado");
       }
     } catch (error) {
       toast.error("Error al procesar la verificación");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // FUNCIÓN EXTRA: Reenviar código
+  const onResend = async () => {
+    if (timer > 0) return; // Por si acaso alguien burla el botón deshabilitado
+
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/reenviar-codigo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email })
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success(data.mensaje || "Se ha enviado un nuevo código");
+        setTimer(60); // Reinicia el contador a 60 segundos
+      } else {
+        toast.error(data.error || "Error al reenviar el código");
+      }
+    } catch (error) {
+      toast.error("Error al conectar con el servidor para reenviar");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -113,70 +156,41 @@ function RegisterPage() {
         </div>
 
         {step === 1 ? (
-          // FORMULARIO DE DATOS
+          /* FORMULARIO DE REGISTRO */
           <form onSubmit={onRegister} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="nombre">Nombre</Label>
-                <Input 
-                  id="nombre" 
-                  required 
-                  value={formData.nombre} 
-                  onChange={e => setFormData({...formData, nombre: e.target.value})} 
-                />
+                <Input id="nombre" required value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} disabled={isLoading} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="apellidos">Apellidos</Label>
-                <Input 
-                  id="apellidos" 
-                  required 
-                  value={formData.apellidos} 
-                  onChange={e => setFormData({...formData, apellidos: e.target.value})} 
-                />
+                <Input id="apellidos" required value={formData.apellidos} onChange={e => setFormData({...formData, apellidos: e.target.value})} disabled={isLoading} />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="email">Correo Institucional (@estudiantec.cr)</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="ejemplo@estudiantec.cr" 
-                required 
-                value={formData.email} 
-                onChange={e => setFormData({...formData, email: e.target.value})} 
-              />
+              <Input id="email" type="email" placeholder="ejemplo@estudiantec.cr" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} disabled={isLoading} />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="password">Contraseña</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  required 
-                  value={formData.password} 
-                  onChange={e => setFormData({...formData, password: e.target.value})} 
-                />
+                <Input id="password" type="password" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} disabled={isLoading} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirm">Confirmar</Label>
-                <Input 
-                  id="confirm" 
-                  type="password" 
-                  required 
-                  value={formData.confirmPassword} 
-                  onChange={e => setFormData({...formData, confirmPassword: e.target.value})} 
-                />
+                <Input id="confirm" type="password" required value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} disabled={isLoading} />
               </div>
             </div>
 
-            <Button type="submit" className="w-full mt-2">
-              Registrarse
+            <Button type="submit" className="w-full mt-2" disabled={isLoading}>
+              {isLoading ? "Enviando datos..." : "Registrarse"}
             </Button>
           </form>
         ) : (
-          // FORMULARIO DE CÓDIGO
+          /* FORMULARIO DE VERIFICACIÓN */
           <form onSubmit={onVerify} className="space-y-6">
             <div className="space-y-2">
               <Label className="text-center block">Código de 6 dígitos</Label>
@@ -187,19 +201,34 @@ function RegisterPage() {
                 required 
                 value={codigo} 
                 onChange={e => setCodigo(e.target.value)} 
+                disabled={isLoading}
               />
             </div>
+            
             <div className="space-y-3">
-              <Button type="submit" className="w-full">
-                Validar y Activar Cuenta
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Verificando..." : "Validar y Activar Cuenta"}
               </Button>
+              
+              {/* BOTÓN DE REENVIAR CON CONTADOR */}
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="w-full text-xs" 
+                onClick={onResend}
+                disabled={timer > 0 || isLoading}
+              >
+                {timer > 0 ? `Reenviar código en ${timer}s` : "¿No recibiste el correo? Reenviar"}
+              </Button>
+
               <Button 
                 type="button" 
                 variant="ghost" 
                 className="w-full text-xs flex items-center justify-center gap-2" 
                 onClick={() => setStep(1)}
+                disabled={isLoading}
               >
-                <ArrowLeft className="size-3" /> Volver al registro
+                <ArrowLeft className="size-3" /> Cambiar correo electrónico
               </Button>
             </div>
           </form>

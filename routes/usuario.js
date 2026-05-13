@@ -14,5 +14,10 @@ router.get('/categorias', verificarToken, categoriaController.obtenerCategorias)
 
 router.get('/productos', productoController.obtenerProductos);
 
+router.post('/recuperarContrasena', usuarioController.solicitarRecuperacion);
+router.post('/restablecerContrasena', usuarioController.restablecerContrasena);
+
+router.post('/reenviarCodigo', registroController.reenviarCodigoRegistro);
+
 
 module.exports = router;

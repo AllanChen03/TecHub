@@ -1,6 +1,7 @@
 const db = require('../../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const transporter = require('../../config/mailer');
 
 const login = async (req, res) => {
   const { email, password } = req.body;
@@ -49,6 +50,93 @@ const login = async (req, res) => {
   });
 };
 
+const solicitarRecuperacion = (req, res) => {
+  const { email } = req.body;
+
+  if (!email) return res.status(400).json({ error: 'Debes ingresar un correo' });
+
+  // 1. Buscamos si el usuario existe
+  db.query('SELECT * FROM usuarios WHERE Email = ?', [email], (err, results) => {
+    if (err || results.length === 0) {
+      // Por seguridad, a veces se dice "Si el correo existe, se envió el código" 
+      // pero para UX, le diremos si no lo encontramos.
+      return res.status(404).json({ error: 'Este correo no está registrado en TecHub' });
+    }
+
+    // 2. Generamos código y vencimiento (igual que en registro)
+    const codigoVerificacion = Math.floor(100000 + Math.random() * 900000).toString();
+    const codigoVencimiento = new Date(Date.now() + 3600000); // 1 hora
+
+    // 3. Guardamos el código en la BD
+    db.query(
+      'UPDATE usuarios SET codigoVerificacion = ?, codigoVencimiento = ? WHERE Email = ?',
+      [codigoVerificacion, codigoVencimiento, email],
+      async (errUpdate) => {
+        if (errUpdate) return res.status(500).json({ error: 'Error interno al generar código' });
+
+        // 4. Enviamos el correo
+        try {
+          const mailOptions = {
+            from: `"Equipo TecHub" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: 'Recuperación de Contraseña - TecHub',
+            html: `
+              <h2>Recuperación de cuenta</h2>
+              <p>Hemos recibido una solicitud para restablecer tu contraseña en TecHub.</p>
+              <p>Ingresa el siguiente código de 6 dígitos para continuar:</p>
+              <h1 style="color: #0056b3; letter-spacing: 5px;">${codigoVerificacion}</h1>
+              <p>Si no solicitaste esto, puedes ignorar este correo.</p>
+            `
+          };
+          await transporter.sendMail(mailOptions);
+          res.json({ mensaje: 'Código de recuperación enviado a tu correo' });
+        } catch (emailError) {
+          console.error(emailError);
+          res.status(500).json({ error: 'Error al enviar el correo electrónico' });
+        }
+      }
+    );
+  });
+};
+
+const restablecerContrasena = (req, res) => {
+  const { email, codigo, nuevaPassword } = req.body;
+
+  db.query('SELECT * FROM usuarios WHERE Email = ?', [email], async (err, results) => {
+    if (err || results.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const usuario = results[0];
+
+    // Validamos el código y el tiempo
+    if (usuario.codigoVerificacion !== codigo) {
+      return res.status(400).json({ error: 'El código de verificación es incorrecto' });
+    }
+    const ahora = new Date();
+    if (ahora > new Date(usuario.codigoVencimiento)) {
+      return res.status(400).json({ error: 'El código ha expirado. Solicita uno nuevo.' });
+    }
+
+    // Encriptamos la nueva contraseña
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(nuevaPassword, saltRounds);
+
+    // Actualizamos la BD y limpiamos los códigos
+    const sqlActualizar = `
+      UPDATE usuarios 
+      SET Password_hash = ?, codigoVerificacion = NULL, codigoVencimiento = NULL 
+      WHERE Email = ?
+    `;
+
+    db.query(sqlActualizar, [passwordHash, email], (errUpdate) => {
+      if (errUpdate) return res.status(500).json({ error: 'Error al actualizar la contraseña' });
+      res.json({ mensaje: '¡Tu contraseña ha sido actualizada con éxito!' });
+    });
+  });
+};
+
 module.exports = {
-  login
+  login,
+  restablecerContrasena,
+  solicitarRecuperacion
+
 };

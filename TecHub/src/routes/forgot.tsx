@@ -1,38 +1,171 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { KeyRound, Mail, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { API_URL } from "@/lib/config";
 
 export const Route = createFileRoute("/forgot")({
-  component: ForgotPage,
+  component: ForgotPasswordPage,
 });
 
-function ForgotPage() {
+function ForgotPasswordPage() {
+  const nav = useNavigate();
+  const [step, setStep] = useState(1); // 1: Pedir Correo, 2: Poner Código y Nueva Contraseña
+  
   const [email, setEmail] = useState("");
-  const onSubmit = (e: React.FormEvent) => {
+  const [codigo, setCodigo] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // PASO 1: Enviar correo
+  const onSolicitar = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success(`Enlace de recuperación enviado a ${email}`);
+    setIsLoading(true);
+    
+    try {
+      const res = await fetch(`${API_URL}/recuperarContrasena`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success(data.mensaje);
+        setStep(2);
+      } else {
+        toast.error(data.error);
+      }
+    } catch (error) {
+      toast.error("Error al conectar con el servidor.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // PASO 2: Restablecer
+  const onRestablecer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      return toast.error("Las nuevas contraseñas no coinciden");
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/restablecerContrasena`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, codigo, nuevaPassword: newPassword })
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success(data.mensaje);
+        nav({ to: "/login" }); // Lo mandamos al login para que entre con su nueva clave
+      } else {
+        toast.error(data.error);
+      }
+    } catch (error) {
+      toast.error("Error al procesar el cambio.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md p-8 shadow-lg">
-        <h1 className="text-2xl font-bold text-primary text-center mb-6">¿Olvidó su contraseña?</h1>
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div>
-            <Label>Correo electrónico</Label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+      <Card className="w-full max-w-md p-8 shadow-lg border-t-4 border-t-primary">
+        <div className="flex flex-col items-center mb-6">
+          <div className="bg-primary/10 p-3 rounded-full mb-3">
+            {step === 1 ? <Mail className="size-8 text-primary" /> : <KeyRound className="size-8 text-primary" />}
           </div>
-          <div className="flex gap-3 pt-2">
-            <Button type="button" variant="outline" className="flex-1" asChild>
-              <Link to="/login">Volver</Link>
+          <h1 className="text-2xl font-bold">
+            {step === 1 ? "Recuperar Contraseña" : "Crear Nueva Contraseña"}
+          </h1>
+          <p className="text-sm text-muted-foreground text-center mt-1">
+            {step === 1 
+              ? "Ingresa tu correo institucional y te enviaremos un código." 
+              : `Ingresa el código enviado a ${email}`}
+          </p>
+        </div>
+
+        {step === 1 ? (
+          <form onSubmit={onSolicitar} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Correo Institucional</Label>
+              <Input 
+                type="email" 
+                placeholder="usuario@estudiantec.cr" 
+                required 
+                value={email} 
+                onChange={e => setEmail(e.target.value)} 
+                disabled={isLoading}
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Enviando..." : "Enviar Código"}
             </Button>
-            <Button type="submit" className="flex-1">Enviar correo</Button>
-          </div>
-        </form>
+          </form>
+        ) : (
+          <form onSubmit={onRestablecer} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Código de Verificación</Label>
+              <Input 
+                placeholder="000000" 
+                className="text-center text-2xl tracking-[0.5em]" 
+                maxLength={6} 
+                required 
+                value={codigo} 
+                onChange={e => setCodigo(e.target.value)} 
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Nueva Contraseña</Label>
+              <Input 
+                type="password" 
+                required 
+                value={newPassword} 
+                onChange={e => setNewPassword(e.target.value)} 
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Confirmar Nueva Contraseña</Label>
+              <Input 
+                type="password" 
+                required 
+                value={confirmPassword} 
+                onChange={e => setConfirmPassword(e.target.value)} 
+                disabled={isLoading}
+              />
+            </div>
+            <Button type="submit" className="w-full mt-2" disabled={isLoading}>
+              {isLoading ? "Actualizando..." : "Restablecer Contraseña"}
+            </Button>
+            <Button 
+              type="button" 
+              variant="ghost" 
+              className="w-full text-xs" 
+              onClick={() => setStep(1)}
+              disabled={isLoading}
+            >
+              Probar con otro correo
+            </Button>
+          </form>
+        )}
+        
+        <div className="mt-8 text-center text-sm border-t pt-4">
+          <Link to="/login" className="text-muted-foreground hover:text-primary flex items-center justify-center gap-2">
+            <ArrowLeft className="size-4"/> Volver al inicio de sesión
+          </Link>
+        </div>
       </Card>
     </div>
   );
