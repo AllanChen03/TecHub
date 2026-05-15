@@ -21,6 +21,7 @@ function RegisterPage() {
     nombre: "",
     apellidos: "",
     email: "",
+    telefono: "", // 👇 Agregamos el teléfono al estado inicial
     password: "",
     confirmPassword: "",
     rolID: 2 // Estudiante por defecto
@@ -47,6 +48,11 @@ function RegisterPage() {
   const onRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // 👇 Validar que el teléfono tenga exactamente 8 dígitos
+    if (formData.telefono.length !== 8) {
+      return toast.error("El número de teléfono debe tener exactamente 8 dígitos.");
+    }
+
     if (formData.password !== formData.confirmPassword) {
       return toast.error("Las contraseñas no coinciden. Por favor verifica.");
     }
@@ -60,6 +66,8 @@ function RegisterPage() {
           nombre: formData.nombre,
           apellidos: formData.apellidos,
           email: formData.email,
+          // 👇 Adjuntamos el prefijo al enviar los datos al backend
+          telefono: `+506${formData.telefono}`, 
           password: formData.password,
           rolID: formData.rolID
         })
@@ -170,9 +178,40 @@ function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Correo Institucional (@estudiantec.cr)</Label>
+              <Label htmlFor="email">Correo Institucional</Label>
               <Input id="email" type="email" placeholder="ejemplo@estudiantec.cr" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} disabled={isLoading} />
             </div>
+
+            {/* 👇 NUEVO CAMPO DE TELÉFONO 👇 */}
+            <div className="space-y-2">
+              <Label htmlFor="telefono">Número de Teléfono (WhatsApp)</Label>
+              <div className="flex">
+                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">
+                  +506
+                </span>
+                <Input
+                  id="telefono"
+                  type="text" // Usamos text pero controlamos que solo entren números
+                  placeholder="00000000"
+                  className="rounded-l-none"
+                  maxLength={8}
+                  value={formData.telefono}
+                  disabled={isLoading}
+                  required
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    // Regex: Solo permite números enteros sin espacios ni letras
+                    if (/^\d*$/.test(val) && val.length <= 8) {
+                      setFormData({ ...formData, telefono: val });
+                    }
+                  }}
+                />
+              </div>
+              <p className="text-[0.75rem] text-muted-foreground leading-tight">
+                Se compartirá con el comprador únicamente para coordinar la entrega si vendes un producto.
+              </p>
+            </div>
+            {/* 👆 FIN DEL CAMPO DE TELÉFONO 👆 */}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

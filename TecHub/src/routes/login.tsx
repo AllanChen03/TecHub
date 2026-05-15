@@ -9,12 +9,18 @@ import { toast } from "sonner";
 import techubHero from "@/assets/techub-hero.png";
 import { API_URL } from "@/lib/config";
 
+// 👇 IMPORTAMOS NUESTRO CONTEXTO DE AUTENTICACIÓN
+import { useAuth } from "@/lib/auth"; 
+
 export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
 function LoginPage() {
   const nav = useNavigate();
+  // 👇 EXTRAEMOS LA FUNCIÓN LOGIN DEL CONTEXTO
+  const { login } = useAuth(); 
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,8 +28,9 @@ function LoginPage() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
     try {
-      const respuesta = await fetch(`${API_URL}/login`, {
+      const respuesta = await fetch(`${API_URL}/usuarios/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -31,33 +38,25 @@ function LoginPage() {
 
       const data = await respuesta.json();
 
-      // console.log("Respuesta exacta del Backend:", JSON.stringify(data, null, 2));
-
       if (!respuesta.ok) {
         toast.error(data.error || "Error al iniciar sesión");
         return;
       }
 
-      if (!data.token) {
-        toast.error("El servidor no devolvió un token válido");
+      // Validamos que el backend sí nos haya mandado el token y los datos del usuario
+      if (!data.token || !data.user) {
+        toast.error("El servidor devolvió información incompleta");
         return;
       }
 
-      // 1. Guardamos el token real
-      localStorage.setItem("techub_token", data.token);
-      
-      // 👇 LA MAGIA: Desencriptamos la información oculta en el Token 👇
-      // Un token JWT siempre tiene 3 partes divididas por un punto (.). La información va en el medio [1].
-      const payloadBase64 = data.token.split('.')[1];
-      const payloadDecodificado = JSON.parse(atob(payloadBase64)); 
-      
-      // 2. Guardamos el rol que venía dentro del token (es payloadDecodificado.rol)
-      localStorage.setItem("techub_rol", String(payloadDecodificado.rol));
+      // 1. Guardamos todo de golpe usando nuestra función de auth.tsx
+      login(data.token, data.user);
 
       toast.success("¡Inicio de sesión exitoso!");
 
-      // 3. Redirección Inteligente basándonos en el token desencriptado
-      if (payloadDecodificado.rol === 1) {
+      // 2. Redirección Inteligente basándonos en el rol que nos mandó el backend
+      // En el backend lo configuramos para que envíe "admin" o "estudiante"
+      if (data.user.rol === 'admin' || data.user.rol === 1) {
         await nav({ to: "/admin", replace: true });
       } else {
         await nav({ to: "/app", replace: true });
@@ -111,13 +110,6 @@ function LoginPage() {
               <Link to="/register" className="text-primary hover:underline">
                 Crear cuenta
               </Link>
-            </div>
-            <div className="text-xs text-muted-foreground bg-muted p-3 rounded-md mt-4">
-              <p className="font-semibold mb-1">Cuentas reales requeridas:</p>
-              <p>
-                Por favor, utiliza una cuenta que hayas creado en tu base de datos y que ya esté
-                verificada mediante el código de correo.
-              </p>
             </div>
           </form>
         </Card>

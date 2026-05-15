@@ -1,26 +1,32 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { API_URL } from "@/lib/config";
+import { LayoutGrid, Image as ImageIcon, Loader2, Search } from "lucide-react";
 
 export const Route = createFileRoute("/app/categorias")({
   component: CategoriasPage,
 });
 
+interface Categoria {
+  CategoriaID: number;
+  NombreCategoria: string;
+  ImagenPath: string | null;
+}
+
 function CategoriasPage() {
-  const [categorias, setCategorias] = useState([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busqueda, setBusqueda] = useState(""); // 👈 Estado para el buscador
 
   useEffect(() => {
     const cargarCategorias = async () => {
       const token = localStorage.getItem('techub_token');
-      
       try {
-        const respuesta = await fetch(`${API_URL}/categorias`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        const respuesta = await fetch(`${API_URL}/usuarios/categorias`, {
+          headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (respuesta.ok) {
@@ -30,65 +36,104 @@ function CategoriasPage() {
           toast.error("Error al obtener las categorías");
         }
       } catch (error) {
-        console.error("Error de conexión:", error);
         toast.error("No se pudo conectar con el servidor");
       } finally {
         setLoading(false);
       }
     };
-
     cargarCategorias();
   }, []);
 
+  // 👇 Lógica de filtrado por nombre de categoría
+  const filtradas = categorias.filter(c => 
+    c.NombreCategoria.toLowerCase().includes(busqueda.toLowerCase())
+  );
+
   if (loading) {
-    return <div className="p-8 text-center">Cargando categorías...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center p-20 gap-4">
+        <Loader2 className="animate-spin size-10 text-primary" />
+        <p className="text-muted-foreground animate-pulse">Cargando catálogo...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold mb-2">Todas las categorías</h1>
-        <p className="text-sm text-muted-foreground">
-          Explora los materiales disponibles por área de estudio.
-        </p>
+    <div className="p-6 max-w-6xl mx-auto space-y-8">
+      {/* CABECERA CON BUSCADOR */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
+        <div className="flex items-center gap-3">
+          <LayoutGrid className="size-8 text-primary" />
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">Categorías</h1>
+            <p className="text-muted-foreground text-sm">Explora materiales por área de estudio</p>
+          </div>
+        </div>
+
+        {/* 👇 BARRA DE BÚSQUEDA 👇 */}
+        <div className="relative w-full md:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input 
+            placeholder="Buscar categoría..." 
+            className="pl-9 bg-white"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+          />
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-        {categorias.map((c: any) => (
+      {/* CUADRÍCULA DE CATEGORÍAS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {filtradas.map((c) => (
           <Link
             key={c.CategoriaID}
             to="/app/productos"
-            search={{categoriaID: c.CategoriaID }}
+            search={{ categoriaID: c.CategoriaID }}
+            className="group"
           >
-            <Card className="p-6 text-center hover:shadow-md hover:border-primary transition cursor-pointer h-full flex flex-col items-center justify-center gap-3">
-              <div className="bg-primary/5 p-4 rounded-full">
+            <Card className="overflow-hidden flex flex-col h-full hover:shadow-xl hover:border-primary/50 transition-all duration-300 cursor-pointer border-muted bg-white">
+              {/* Imagen de fondo (Estilo Admin) */}
+              <div className="h-44 bg-muted relative overflow-hidden">
                 {c.ImagenPath ? (
                   <img 
                     src={`${API_URL}${c.ImagenPath}`} 
-                    alt={c.NombreCategoria} 
-                    className="w-16 h-16 object-contain"
+                    alt={c.NombreCategoria}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                 ) : (
-                  <div className="w-16 h-16 flex items-center justify-center text-primary font-bold text-3xl">
-                    {c.NombreCategoria?.charAt(0)}
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-primary/5">
+                    <ImageIcon className="size-12 opacity-20" />
                   </div>
                 )}
+                {/* Overlay sutil al pasar el mouse */}
+                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
-              <div>
-                <div className="font-bold text-foreground">{c.NombreCategoria}</div>
-                {/* Opcional: Si quieres mostrar el conteo de productos, 
-                    el backend debería enviarlo o hacer otro fetch */}
+
+              {/* Título */}
+              <div className="p-4 text-center">
+                <h3 className="font-bold text-gray-700 group-hover:text-primary transition-colors truncate">
+                  {c.NombreCategoria}
+                </h3>
+                <p className="text-[10px] text-primary font-bold uppercase tracking-widest mt-1 opacity-0 group-hover:opacity-100 transition-all transform translate-y-1 group-hover:translate-y-0">
+                  Ver productos
+                </p>
               </div>
             </Card>
           </Link>
         ))}
-      </div>
 
-      {categorias.length === 0 && (
-        <div className="text-center py-20 bg-muted/30 rounded-xl border border-dashed">
-          <p className="text-muted-foreground">No se encontraron categorías disponibles.</p>
-        </div>
-      )}
+        {/* Mensaje de no resultados */}
+        {filtradas.length === 0 && (
+          <div className="col-span-full p-20 text-center bg-white rounded-2xl border-2 border-dashed">
+            <Search className="size-12 text-muted-foreground/20 mx-auto mb-4" />
+            <p className="text-muted-foreground font-medium">
+              {busqueda !== "" 
+                ? `No encontramos resultados para "${busqueda}"` 
+                : "No hay categorías disponibles."}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
