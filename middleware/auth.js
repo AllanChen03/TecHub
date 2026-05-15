@@ -26,13 +26,15 @@ const verificarToken = (req, res, next) => {
 
 // 2. Middleware para verificar que el usuario sea Administrador
 const esAdmin = (req, res, next) => {
-  // Como esto se ejecuta después de verificarToken, ya tenemos acceso a req.usuario
-  // Recordando tu base de datos, el RolID = 1 es el Administrador
-  if (req.usuario.rolID !== 1) {
-    return res.status(403).json({ error: 'Acceso denegado. Esta acción requiere permisos de Administrador.' });
+  // 1. Usamos req.usuario (que es como lo guardó verificarToken)
+  console.log("Verificando rol del usuario:", req.usuario);
+
+  // 2. Buscamos la propiedad 'rol' (que es como la guardó el login en el token)
+  if (req.usuario && req.usuario.rol === 1) {
+    next(); // Es admin, le abrimos la puerta
+  } else {
+    res.status(403).json({ error: 'Acceso denegado: Se requieren permisos de administrador' });
   }
-  
-  next(); // Es admin, permitimos que continúe
 };
 
 module.exports = {

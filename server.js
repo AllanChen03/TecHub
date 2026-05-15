@@ -4,6 +4,8 @@ require('dotenv').config();
 
 const usuario = require('./routes/usuario');
 const admin = require('./routes/admin');
+const comentarios = require('./routes/comentarios');
+
 
 const app = express();
 
@@ -12,8 +14,9 @@ app.use(express.json())
 
 app.use(express.static('public'));
 
-app.use('/', usuario);
+app.use('/usuarios', usuario);
 app.use('/admin', admin);
+app.use('/api/comentarios', comentarios);
 
 const PORT = process.env.PORT || 3000;
 

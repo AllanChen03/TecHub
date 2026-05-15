@@ -15,6 +15,9 @@ router.post('/login', adminController.loginAdmin);
 //Rutas Categorias
 router.get('/categorias', verificarToken, esAdmin, categoriaController.obtenerCategorias);
 router.post('/categorias', verificarToken, esAdmin, upload.single('imagen'), categoriaController.crearCategoria);
+router.put('/categorias/:id', verificarToken, esAdmin, upload.single('imagen'), categoriaController.actualizarCategoria);
+router.delete('/categorias/:id', verificarToken, esAdmin, categoriaController.eliminarCategoria);
+
 
 //Rutas Usuarios
 router.get('/usuarios', verificarToken, esAdmin, adminController.obtenerUsuarios);
@@ -26,7 +29,7 @@ router.delete('/usuarios/:id', verificarToken, esAdmin, adminController.eliminar
 router.get('/ordenes', verificarToken, esAdmin, ordenController.obtenerOrdenes);
 
 //Rutas Comentarios
-router.get('/comentarios', verificarToken, esAdmin, comentariosController.obtenerComentarios);
+router.get('/comentarios', verificarToken, esAdmin, comentariosController.obtenerComentariosPorProducto);
 router.delete('/comentarios/:id', verificarToken, esAdmin, comentariosController.eliminarComentario);
 
 module.exports = router;

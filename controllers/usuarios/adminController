@@ -38,7 +38,7 @@ const loginAdmin = async (req, res) => {
       // 4. Generamos el JWT para el Administrador
       const payload = {
         usuarioID: admin.UsuarioID,
-        rolID: admin.RolID
+        rolID: admin.RolID // 👈 Aquí lo estás guardando como 'rolID' en minúscula
       };
 
       const token = jwt.sign(payload, process.env.JWT_SECRET, {
