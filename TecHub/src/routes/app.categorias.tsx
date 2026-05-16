@@ -19,7 +19,7 @@ interface Categoria {
 function CategoriasPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
-  const [busqueda, setBusqueda] = useState(""); // 👈 Estado para el buscador
+  const [busqueda, setBusqueda] = useState("");
 
   useEffect(() => {
     const cargarCategorias = async () => {
@@ -44,10 +44,13 @@ function CategoriasPage() {
     cargarCategorias();
   }, []);
 
-  // 👇 Lógica de filtrado por nombre de categoría
-  const filtradas = categorias.filter(c => 
-    c.NombreCategoria.toLowerCase().includes(busqueda.toLowerCase())
-  );
+  const filtradas = [...categorias]
+    .sort((a, b) => a.NombreCategoria.localeCompare(b.NombreCategoria))
+    .filter(c => c.NombreCategoria.toLowerCase().includes(busqueda.toLowerCase()));
+
+  // ✅ Resuelve tanto URLs de Cloudinary como paths locales antiguos
+  const getImageSrc = (path: string) =>
+    path.startsWith("http") ? path : `${API_URL}${path}`;
 
   if (loading) {
     return (
@@ -60,7 +63,7 @@ function CategoriasPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-8">
-      {/* CABECERA CON BUSCADOR */}
+      {/* CABECERA */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
         <div className="flex items-center gap-3">
           <LayoutGrid className="size-8 text-primary" />
@@ -70,11 +73,10 @@ function CategoriasPage() {
           </div>
         </div>
 
-        {/* 👇 BARRA DE BÚSQUEDA 👇 */}
         <div className="relative w-full md:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input 
-            placeholder="Buscar categoría..." 
+          <Input
+            placeholder="Buscar categoría..."
             className="pl-9 bg-white"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
@@ -82,7 +84,7 @@ function CategoriasPage() {
         </div>
       </div>
 
-      {/* CUADRÍCULA DE CATEGORÍAS */}
+      {/* CUADRÍCULA */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {filtradas.map((c) => (
           <Link
@@ -92,24 +94,21 @@ function CategoriasPage() {
             className="group"
           >
             <Card className="overflow-hidden flex flex-col h-full hover:shadow-xl hover:border-primary/50 transition-all duration-300 cursor-pointer border-muted bg-white">
-              {/* Imagen de fondo (Estilo Admin) */}
               <div className="h-44 bg-muted relative overflow-hidden">
                 {c.ImagenPath ? (
-                  <img 
-                    src={`${API_URL}${c.ImagenPath}`} 
+                  <img
+                    src={getImageSrc(c.ImagenPath)}
                     alt={c.NombreCategoria}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    className="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-500"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-primary/5">
                     <ImageIcon className="size-12 opacity-20" />
                   </div>
                 )}
-                {/* Overlay sutil al pasar el mouse */}
                 <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
 
-              {/* Título */}
               <div className="p-4 text-center">
                 <h3 className="font-bold text-gray-700 group-hover:text-primary transition-colors truncate">
                   {c.NombreCategoria}
@@ -122,13 +121,12 @@ function CategoriasPage() {
           </Link>
         ))}
 
-        {/* Mensaje de no resultados */}
         {filtradas.length === 0 && (
           <div className="col-span-full p-20 text-center bg-white rounded-2xl border-2 border-dashed">
             <Search className="size-12 text-muted-foreground/20 mx-auto mb-4" />
             <p className="text-muted-foreground font-medium">
-              {busqueda !== "" 
-                ? `No encontramos resultados para "${busqueda}"` 
+              {busqueda !== ""
+                ? `No encontramos resultados para "${busqueda}"`
                 : "No hay categorías disponibles."}
             </p>
           </div>

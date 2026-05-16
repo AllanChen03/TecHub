@@ -2,6 +2,7 @@ import { Link, useNavigate, useLocation } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Bell, ShoppingBag, User } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
+import { API_URL } from "@/lib/config";
 
 interface Props {
   children: ReactNode;
@@ -12,8 +13,41 @@ export function AppShell({ children, admin = false }: Props) {
   const nav = useNavigate();
   const loc = useLocation();
   const [mounted, setMounted] = useState(false);
-  
+  const [totalNotifs, setTotalNotifs] = useState(0);
+
   useEffect(() => setMounted(true), []);
+
+  // Cargar conteo de notificaciones cada 30 segundos
+  useEffect(() => {
+    if (admin) return;
+
+    const fetchConteo = async () => {
+      try {
+        const token = localStorage.getItem("techub_token");
+        if (!token) return;
+        const res = await fetch(`${API_URL}/usuarios/notificaciones`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setTotalNotifs(data.length);
+        }
+      } catch {
+        // silencioso
+      }
+    };
+
+    fetchConteo();
+    const intervalo = setInterval(fetchConteo, 30000);
+    return () => clearInterval(intervalo);
+  }, [admin]);
+
+  // Al entrar a notificaciones, limpiar el badge
+  useEffect(() => {
+    if (loc.pathname === "/app/notificaciones") {
+      setTotalNotifs(0);
+    }
+  }, [loc.pathname]);
 
   const userLinks = [
     { to: "/app", label: "Inicio" },
@@ -27,6 +61,7 @@ export function AppShell({ children, admin = false }: Props) {
     { to: "/admin/productos", label: "Productos" },
     { to: "/admin/categorias", label: "Categorías" },
     { to: "/admin/ordenes", label: "Órdenes" },
+    { to: "/admin/comentarios", label: "Reseñas" },
   ];
   const links = admin ? adminLinks : userLinks;
 
@@ -65,16 +100,26 @@ export function AppShell({ children, admin = false }: Props) {
               );
             })}
           </nav>
+
           <div className="flex items-center gap-2 ml-auto">
+            {/* CAMPANA CON PUNTO ROJO */}
             {!admin && (
               <Link
                 to="/app/notificaciones"
                 className="relative p-2 rounded-md hover:bg-sidebar-accent"
-                aria-label="Notificaciones"
+                aria-label={`Notificaciones${totalNotifs > 0 ? `, ${totalNotifs} sin leer` : ""}`}
               >
                 <Bell className="size-5" aria-hidden="true" />
+                {totalNotifs > 0 && (
+                  <span className="absolute top-1 right-1 flex size-2.5">
+                    {/* Anillo pulsante para llamar la atención */}
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full size-2.5 bg-red-500" />
+                  </span>
+                )}
               </Link>
             )}
+
             <Link
               to={admin ? "/admin/perfil" : "/app/perfil"}
               className="flex items-center gap-2 bg-sidebar-accent px-3 py-1.5 rounded-md text-sm hover:opacity-90"
@@ -88,7 +133,6 @@ export function AppShell({ children, admin = false }: Props) {
               size="sm"
               className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               onClick={() => {
-                // Borramos el token real al cerrar sesión
                 if (typeof window !== "undefined") {
                   localStorage.removeItem("techub_token");
                   localStorage.removeItem("techub_user");
@@ -101,6 +145,7 @@ export function AppShell({ children, admin = false }: Props) {
             </Button>
           </div>
         </div>
+
         <nav
           aria-label="Navegación principal móvil"
           className="md:hidden flex overflow-x-auto px-2 pb-2 gap-1 max-w-7xl mx-auto"
@@ -122,6 +167,7 @@ export function AppShell({ children, admin = false }: Props) {
           })}
         </nav>
       </header>
+
       <main
         id="contenido-principal"
         role="main"
@@ -130,6 +176,7 @@ export function AppShell({ children, admin = false }: Props) {
       >
         {children}
       </main>
+
       <footer
         role="contentinfo"
         className="bg-sidebar text-sidebar-foreground/70 text-xs text-center py-3"

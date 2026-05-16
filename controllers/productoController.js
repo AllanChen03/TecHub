@@ -1,18 +1,23 @@
 const db = require('../config/db');
 
-// ✅ CORREGIDO: JOIN con sedes y condiciones para traer los nombres reales
 const obtenerProductos = (req, res) => {
+  const UsuarioID = req.usuario.id;
+
   const sql = `
     SELECT 
       p.*,
       s.NombreSede,
-      c.EstadoProducto
+      c.EstadoProducto,
+      cat.NombreCategoria
     FROM productos p
-    LEFT JOIN sedes s ON p.SedeID = s.SedeID
-    LEFT JOIN condicionproducto c ON p.CondicionID = c.CondicionID
+    LEFT JOIN sedes             s   ON p.SedeID     = s.SedeID
+    LEFT JOIN condicionproducto c   ON p.CondicionID = c.CondicionID
+    LEFT JOIN categorias        cat ON p.CategoriaID = cat.CategoriaID
+    WHERE p.UsuarioID != ?
+    AND p.DisponibilidadID = 1
   `;
 
-  db.query(sql, (err, results) => {
+  db.query(sql, [UsuarioID], (err, results) => {
     if (err) {
       console.error('Error al obtener productos:', err);
       return res.status(500).json({ error: 'Error al consultar los productos' });
@@ -20,7 +25,6 @@ const obtenerProductos = (req, res) => {
     res.json(results);
   });
 };
-
 const crearProducto = (req, res) => {
   const {
     NombreProducto,
@@ -34,7 +38,7 @@ const crearProducto = (req, res) => {
   const UsuarioID = req.usuario.id;
 
   const ImagenPath = req.file
-    ? `/uploads/categorias/${req.file.filename}`
+    ? req.file.path
     : null;
 
   const DisponibilidadID = 1;
@@ -119,7 +123,7 @@ const actualizarProducto = (req, res) => {
 
   if (req.file) {
     sql += `, ImagenPath = ?`;
-    valores.push(`/uploads/categorias/${req.file.filename}`);
+    valores.push(req.file.path);
   }
 
   sql += ` WHERE ProductoID = ?`;
@@ -158,11 +162,18 @@ const obtenerMisProductos = (req, res) => {
     SELECT 
       p.*,
       s.NombreSede,
-      c.EstadoProducto
+      c.EstadoProducto,
+      cat.NombreCategoria
     FROM productos p
-    LEFT JOIN sedes s ON p.SedeID = s.SedeID
-    LEFT JOIN condicionproducto c ON p.CondicionID = c.CondicionID
+    LEFT JOIN sedes             s   ON p.SedeID     = s.SedeID
+    LEFT JOIN condicionproducto c   ON p.CondicionID = c.CondicionID
+    LEFT JOIN categorias        cat ON p.CategoriaID = cat.CategoriaID
     WHERE p.UsuarioID = ?
+    AND NOT EXISTS (
+      SELECT 1 FROM ordenes o
+      WHERE o.ProductoID = p.ProductoID
+      AND o.EstadoID = 2
+    )
   `;
 
   db.query(sql, [UsuarioID], (err, results) => {
@@ -192,8 +203,8 @@ const obtenerProductoPorId = (req, res) => {
         (SELECT AVG(com.Valoracion) FROM comentarios com WHERE com.VendedorID = u.UsuarioID),
         1
       )               AS VendedorValoracion,
-      (SELECT COUNT(*) FROM comentarios com WHERE com.VendedorID = u.UsuarioID)
-                      AS VendedorTotalReseñas
+      (SELECT COUNT(*) + 0 FROM comentarios com WHERE com.VendedorID = u.UsuarioID)
+                      AS VendedorTotalResenas
     FROM productos p
     LEFT JOIN sedes             s   ON p.SedeID      = s.SedeID
     LEFT JOIN condicionproducto c   ON p.CondicionID  = c.CondicionID

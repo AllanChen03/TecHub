@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { KeyRound, Mail, ArrowLeft } from "lucide-react";
+import { KeyRound, Mail, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { API_URL } from "@/lib/config";
 
@@ -21,6 +21,8 @@ function ForgotPasswordPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   // PASO 1: Enviar correo
   const onSolicitar = async (e: React.FormEvent) => {
@@ -28,7 +30,7 @@ function ForgotPasswordPage() {
     setIsLoading(true);
     
     try {
-      const res = await fetch(`${API_URL}/recuperarContrasena`, {
+      const res = await fetch(`${API_URL}/usuarios/recuperarContrasena`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -58,7 +60,7 @@ function ForgotPasswordPage() {
 
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_URL}/restablecerContrasena`, {
+      const res = await fetch(`${API_URL}/usuarios/restablecerContrasena`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, codigo, nuevaPassword: newPassword })
@@ -128,23 +130,21 @@ function ForgotPasswordPage() {
             </div>
             <div className="space-y-2">
               <Label>Nueva Contraseña</Label>
-              <Input 
-                type="password" 
-                required 
-                value={newPassword} 
-                onChange={e => setNewPassword(e.target.value)} 
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <Input type={showNew ? "text" : "password"} required value={newPassword} onChange={e => setNewPassword(e.target.value)} disabled={isLoading} className="pr-10" />
+                <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-gray-700">
+                  {showNew ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Confirmar Nueva Contraseña</Label>
-              <Input 
-                type="password" 
-                required 
-                value={confirmPassword} 
-                onChange={e => setConfirmPassword(e.target.value)} 
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <Input type={showConfirm ? "text" : "password"} required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} disabled={isLoading} className="pr-10" />
+                <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-gray-700">
+                  {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
             </div>
             <Button type="submit" className="w-full mt-2" disabled={isLoading}>
               {isLoading ? "Actualizando..." : "Restablecer Contraseña"}

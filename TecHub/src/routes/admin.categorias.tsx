@@ -160,13 +160,13 @@ function CategoriasPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {filtradas.map(c => (
             <Card key={c.CategoriaID} className="overflow-hidden flex flex-col shadow-sm border-muted">
-              {/* Imagen (No clickable) */}
+              {/* Imagen */}
               <div className="h-40 bg-muted relative overflow-hidden">
                 {c.ImagenPath ? (
                   <img 
-                    src={`${API_URL}${c.ImagenPath}`} 
+                    src={c.ImagenPath?.startsWith("http") ? c.ImagenPath : `${API_URL}${c.ImagenPath}`}
                     alt={c.NombreCategoria}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain p-4"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -179,7 +179,6 @@ function CategoriasPage() {
               <div className="p-4 flex items-center justify-between gap-2">
                 <h3 className="font-bold text-gray-700 truncate">{c.NombreCategoria}</h3>
                 
-                {/* BOTONES DE ACCIÓN (Estilo admin.index) */}
                 <div className="flex gap-1">
                   <Button 
                     variant="outline" 

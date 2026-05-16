@@ -14,8 +14,9 @@ const obtenerCategorias = (req, res) => {
 
 const crearCategoria = (req, res) => {
   const { nombreCategoria } = req.body;
-  
-  const imagenPath = req.file ? `/uploads/categorias/${req.file.filename}` : null;
+
+  // ✅ Cloudinary devuelve la URL completa en req.file.path
+  const imagenPath = req.file ? req.file.path : null;
 
   if (!nombreCategoria) {
     return res.status(400).json({ error: 'El nombre de la categoría es obligatorio' });
@@ -41,9 +42,10 @@ const crearCategoria = (req, res) => {
 const actualizarCategoria = (req, res) => {
   const { id } = req.params; 
   const { nombreCategoria } = req.body;
-  const imagenPath = req.file ? `/uploads/categorias/${req.file.filename}` : null;
 
-  // Si no mandó ni nombre ni imagen, no hay nada que actualizar
+  // ✅ Cloudinary devuelve la URL completa en req.file.path
+  const imagenPath = req.file ? req.file.path : null;
+
   if (!nombreCategoria && !imagenPath) {
     return res.status(400).json({ error: 'No hay datos para actualizar' });
   }
@@ -51,7 +53,6 @@ const actualizarCategoria = (req, res) => {
   let sql = '';
   let params = [];
 
-  // Lógica para saber qué actualizar exactamente
   if (nombreCategoria && imagenPath) {
     sql = 'UPDATE categorias SET NombreCategoria = ?, ImagenPath = ? WHERE CategoriaID = ?';
     params = [nombreCategoria, imagenPath, id];
@@ -84,8 +85,6 @@ const eliminarCategoria = (req, res) => {
   
   db.query(sql, [id], (err, result) => {
     if (err) {
-      // ⚠️ PROTECCIÓN DE DISEÑO DE SOFTWARE: 
-      // Si la base de datos rechaza el borrado porque hay productos usando esta categoría
       if (err.code === 'ER_ROW_IS_REFERENCED_2' || err.code === 'ER_ROW_IS_REFERENCED') {
         return res.status(400).json({ 
           error: 'No se puede eliminar esta categoría porque hay productos que pertenecen a ella. Cambia los productos de categoría primero.' 
@@ -102,7 +101,6 @@ const eliminarCategoria = (req, res) => {
     res.json({ mensaje: 'Categoría eliminada exitosamente' });
   });
 };
-
 
 module.exports = {
   obtenerCategorias,

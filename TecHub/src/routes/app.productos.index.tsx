@@ -2,8 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button"; // ✅ CORREGIDO: faltaba este import
-import { Search, ShoppingBag, FilterX, Loader2, Package } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, ShoppingBag, FilterX, Loader2, Package, MapPin } from "lucide-react";
 import { API_URL } from "@/lib/config";
 
 export const Route = createFileRoute("/app/productos/")({
@@ -15,41 +15,52 @@ export const Route = createFileRoute("/app/productos/")({
   component: ProductosCatalogPage,
 });
 
+interface Sede {
+  SedeID: number;
+  NombreSede: string;
+}
+
 function ProductosCatalogPage() {
   const { categoriaID } = Route.useSearch();
   const [productos, setProductos] = useState([]);
+  const [sedes, setSedes] = useState<Sede[]>([]);
   const [busqueda, setBusqueda] = useState("");
+  const [sedeSeleccionada, setSedeSeleccionada] = useState<number | "">("");
   const [loading, setLoading] = useState(true);
 
+  const token = localStorage.getItem('techub_token');
+  const headers = { Authorization: `Bearer ${token}` };
+
   useEffect(() => {
-    const fetchProductos = async () => {
+    const fetchDatos = async () => {
       try {
-        const token = localStorage.getItem('techub_token');
-        const res = await fetch(`${API_URL}/usuarios/productos`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setProductos(data);
-        }
+        const [resProductos, resSedes] = await Promise.all([
+          fetch(`${API_URL}/usuarios/productos`, { headers }),
+          fetch(`${API_URL}/usuarios/sedes`, { headers }),
+        ]);
+        if (resProductos.ok) setProductos(await resProductos.json());
+        if (resSedes.ok) setSedes(await resSedes.json());
       } catch (error) {
         console.error("Error cargando productos", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchProductos();
+    fetchDatos();
   }, []);
 
   const productosFiltrados = useMemo(() => {
     return productos.filter((p: any) => {
-      const cumpleCategoria = categoriaID
-        ? Number(p.CategoriaID) === categoriaID
-        : true;
-      const cumpleBusqueda = p.NombreProducto?.toLowerCase().includes(busqueda.toLowerCase());
-      return cumpleCategoria && cumpleBusqueda;
+      const cumpleCategoria = categoriaID ? Number(p.CategoriaID) === categoriaID : true;
+      const cumpleBusqueda  = p.NombreProducto?.toLowerCase().includes(busqueda.toLowerCase());
+      const cumpleSede      = sedeSeleccionada !== "" ? Number(p.SedeID) === Number(sedeSeleccionada) : true;
+      return cumpleCategoria && cumpleBusqueda && cumpleSede;
     });
-  }, [productos, categoriaID, busqueda]);
+  }, [productos, categoriaID, busqueda, sedeSeleccionada]);
+
+  const hayFiltros = categoriaID || sedeSeleccionada !== "";
+
+  const limpiarFiltros = () => setSedeSeleccionada("");
 
   if (loading) {
     return (
@@ -62,7 +73,7 @@ function ProductosCatalogPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-8">
-      {/* CABECERA: misma estructura que app/categorias */}
+      {/* CABECERA */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
         <div className="flex items-center gap-3">
           <Package className="size-8 text-primary" />
@@ -76,9 +87,10 @@ function ProductosCatalogPage() {
           </div>
         </div>
 
-        {/* ✅ CORREGIDO: buscador + botón "Ver todo" con misma altura (h-10 por defecto) */}
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <div className="relative w-full md:w-80">
+        {/* FILTROS */}
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          {/* Buscador */}
+          <div className="relative w-full md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input
               placeholder="¿Qué estás buscando hoy?"
@@ -87,11 +99,27 @@ function ProductosCatalogPage() {
               onChange={(e) => setBusqueda(e.target.value)}
             />
           </div>
-          {/* ✅ CORREGIDO: quitado size="sm", ahora usa tamaño por defecto igual que Input */}
-          {categoriaID && (
-            <Link to="/app/productos">
-              <Button variant="outline" className="whitespace-nowrap">
-                Ver todo
+
+          {/* Filtro por sede */}
+          <div className="relative">
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            <select
+              className="h-10 pl-9 pr-4 rounded-md border border-input bg-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+              value={sedeSeleccionada}
+              onChange={(e) => setSedeSeleccionada(e.target.value === "" ? "" : Number(e.target.value))}
+            >
+              <option value="">Todas las sedes</option>
+              {sedes.map((s) => (
+                <option key={s.SedeID} value={s.SedeID}>{s.NombreSede}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Botón limpiar filtros */}
+          {hayFiltros && (
+            <Link to="/app/productos" onClick={limpiarFiltros}>
+              <Button variant="outline" className="whitespace-nowrap gap-1.5">
+                <FilterX className="size-4" /> Limpiar
               </Button>
             </Link>
           )}
@@ -113,9 +141,9 @@ function ProductosCatalogPage() {
                 <div className="h-44 bg-muted relative overflow-hidden">
                   {p.ImagenPath ? (
                     <img
-                      src={`${API_URL}${p.ImagenPath}`}
+                      src={p.ImagenPath?.startsWith("http") ? p.ImagenPath : `${API_URL}${p.ImagenPath}`}
                       alt={p.NombreProducto}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      className="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-500"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-primary/5">
@@ -141,6 +169,10 @@ function ProductosCatalogPage() {
                     <span className="text-xs text-muted-foreground">
                       <span className="font-semibold text-gray-500">Sede:</span>{" "}
                       {p.NombreSede || "—"}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      <span className="font-semibold text-gray-500">Categoría:</span>{" "}
+                      {p.NombreCategoria || "—"}
                     </span>
                   </div>
                   <p className="text-[10px] text-primary font-bold uppercase tracking-widest mt-1 opacity-0 group-hover:opacity-100 transition-all transform translate-y-1 group-hover:translate-y-0">

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Settings, Star, User, Mail, Phone, Lock, ArrowLeft, Save, Trash2 } from "lucide-react";
+import { Settings, Star, User, Mail, Phone, Lock, ArrowLeft, Save, Trash2, Eye, EyeOff} from "lucide-react";
 import { API_URL } from "@/lib/config";
 
 export const Route = createFileRoute("/app/perfil")({
@@ -34,6 +34,32 @@ function PerfilPage() {
     newPassword: "",
     confirmPassword: ""
   });
+  const [showOld, setShowOld] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  // Estado para la valoración real
+  const [valoracion, setValoracion] = useState<{ promedio: number | null; total: number }>({ promedio: null, total: 0 });
+
+  // Estado para valoracion como comprador
+  const [valoracionComprador, setValoracionComprador] = useState<{ promedio: number | null }>({ promedio: null });
+
+  // Fetch ambas valoraciones
+  useEffect(() => {
+    const fetchValoraciones = async () => {
+      try {
+        const token = localStorage.getItem('techub_token');
+        const headers = { Authorization: `Bearer ${token}` };
+        const [resVendedor, resComprador] = await Promise.all([
+          fetch(`${API_URL}/usuarios/mi-valoracion`, { headers }),
+          fetch(`${API_URL}/usuarios/mi-valoracion-comprador`, { headers }),
+        ]);
+        if (resVendedor.ok) setValoracion(await resVendedor.json());
+        if (resComprador.ok) setValoracionComprador(await resComprador.json());
+      } catch { /* silencioso */ }
+    };
+    fetchValoraciones();
+  }, []);
 
   // Sincronizar datos del usuario con el estado local
   useEffect(() => {
@@ -134,12 +160,27 @@ function PerfilPage() {
       {/* 1. VISTA DE CONSULTA (Lo que todos ven) */}
       {view === "ver" && (
         <div className="space-y-6">
-          {/* Caja de Valoración (Importante para estudiantes) */}
-          <div className="flex items-center gap-4 p-4 bg-yellow-50/50 rounded-lg border border-yellow-100">
-            <Star className="size-8 text-yellow-500 fill-yellow-500" />
-            <div>
-              <p className="text-xs text-yellow-700 font-bold uppercase tracking-wider">Tu Valoración</p>
-              <p className="text-2xl font-black">5.0 <span className="text-sm font-normal text-muted-foreground">/ 5.0</span></p>
+          {/* Valoraciones: vendedor y comprador */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center gap-3 p-3 bg-yellow-50/50 rounded-lg border border-yellow-100">
+              <Star className="size-6 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+              <div>
+                <p className="text-xs text-yellow-700 font-bold uppercase tracking-wider">Vendedor</p>
+                <p className="text-xl font-black">
+                  {valoracion.promedio !== null ? valoracion.promedio.toFixed(1) : "—"}
+                  <span className="text-xs font-normal text-muted-foreground"> / 5.0</span>
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
+              <Star className="size-6 text-blue-500 fill-blue-500 flex-shrink-0" />
+              <div>
+                <p className="text-xs text-blue-700 font-bold uppercase tracking-wider">Comprador</p>
+                <p className="text-xl font-black">
+                  {valoracionComprador.promedio !== null ? valoracionComprador.promedio.toFixed(1) : "—"}
+                  <span className="text-xs font-normal text-muted-foreground"> / 5.0</span>
+                </p>
+              </div>
             </div>
           </div>
 
@@ -229,15 +270,30 @@ function PerfilPage() {
         <form onSubmit={handleCambiarPassword} className="space-y-4">
           <div className="space-y-2">
             <Label>Contraseña Actual</Label>
-            <Input type="password" required value={passForm.oldPassword} onChange={e => setPassForm({...passForm, oldPassword: e.target.value})} />
+            <div className="relative">
+              <Input type={showOld ? "text" : "password"} required value={passForm.oldPassword} onChange={e => setPassForm({...passForm, oldPassword: e.target.value})} className="pr-10" />
+              <button type="button" onClick={() => setShowOld(!showOld)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-gray-700">
+                {showOld ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
           </div>
           <div className="space-y-2">
             <Label>Nueva Contraseña</Label>
-            <Input type="password" required value={passForm.newPassword} onChange={e => setPassForm({...passForm, newPassword: e.target.value})} />
+            <div className="relative">
+              <Input type={showNew ? "text" : "password"} required value={passForm.newPassword} onChange={e => setPassForm({...passForm, newPassword: e.target.value})} className="pr-10" />
+              <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-gray-700">
+                {showNew ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
           </div>
           <div className="space-y-2">
             <Label>Confirmar Nueva Contraseña</Label>
-            <Input type="password" required value={passForm.confirmPassword} onChange={e => setPassForm({...passForm, confirmPassword: e.target.value})} />
+            <div className="relative">
+              <Input type={showConfirm ? "text" : "password"} required value={passForm.confirmPassword} onChange={e => setPassForm({...passForm, confirmPassword: e.target.value})} className="pr-10" />
+              <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-gray-700">
+                {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
           </div>
           <div className="flex gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => setView("editar")} className="flex-1 gap-2">

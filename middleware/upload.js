@@ -1,21 +1,31 @@
 const multer = require('multer');
-const path = require('path');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('cloudinary').v2;
 
-// Configuración de almacenamiento
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // Le indicamos que guarde los archivos en la carpeta que acabamos de crear
-    cb(null, 'public/uploads/categorias');
-  },
-  filename: (req, file, cb) => {
-    // Generamos un nombre único para evitar que las imágenes se sobrescriban
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const extension = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + extension);
-  }
+// 1. Configuramos Cloudinary con las variables de entorno
+//    (las agregas en Railway: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET)
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key:    process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Filtro para aceptar solo imágenes
+// 2. En vez de guardar en disco, guardamos directo en Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    // Detectamos si es imagen de categoria o de producto segun la ruta
+    const esCategoria = req.originalUrl.includes('categorias');
+    
+    return {
+      folder: esCategoria ? 'techub/categorias' : 'techub/productos',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+      transformation: [{ width: 800, height: 800, crop: 'limit', quality: 'auto' }],
+    };
+  },
+});
+
+// 3. Filtro: solo imágenes
 const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith('image/')) {
     cb(null, true);
@@ -24,10 +34,10 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 } // Límite de 5MB por imagen
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
 
-module.exports = upload;
+module.exports = { upload, cloudinary };

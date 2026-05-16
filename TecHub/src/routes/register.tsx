@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { GraduationCap, ShieldCheck, ArrowLeft } from "lucide-react";
+import { GraduationCap, ShieldCheck, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { API_URL } from "@/lib/config";
 
@@ -29,6 +29,8 @@ function RegisterPage() {
 
   const [codigo, setCodigo] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   
   // Estado para el temporizador de reenvío
   const [timer, setTimer] = useState(0);
@@ -216,11 +218,21 @@ function RegisterPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="password">Contraseña</Label>
-                <Input id="password" type="password" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} disabled={isLoading} />
+                <div className="relative">
+                  <Input id="password" type={showPassword ? "text" : "password"} required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} disabled={isLoading} className="pr-10" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-gray-700">
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirm">Confirmar</Label>
-                <Input id="confirm" type="password" required value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} disabled={isLoading} />
+                <div className="relative">
+                  <Input id="confirm" type={showConfirm ? "text" : "password"} required value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} disabled={isLoading} className="pr-10" />
+                  <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-gray-700">
+                    {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
               </div>
             </div>
 

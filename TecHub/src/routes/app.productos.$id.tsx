@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import {
   User as UserIcon,
   MessageCircle,
   Loader2,
+  CheckCircle,
   Star,
 } from "lucide-react";
 
@@ -45,6 +46,8 @@ function ProductoDetalle() {
 
   const [producto, setProducto] = useState<Producto | null>(null);
   const [loading, setLoading] = useState(true);
+  const [solicitando, setSolicitando] = useState(false);
+  const [solicitado, setSolicitado] = useState(false);
 
   useEffect(() => {
     const fetchProducto = async () => {
@@ -73,6 +76,27 @@ function ProductoDetalle() {
     fetchProducto();
   }, [id]);
 
+  const handleSolicitarCompra = async () => {
+    setSolicitando(true);
+    try {
+      const token = localStorage.getItem("techub_token");
+      const res = await fetch(`${API_URL}/usuarios/solicitar-compra/${id}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al enviar la solicitud");
+
+      toast.success("Solicitud enviada al vendedor");
+      setSolicitado(true);
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setSolicitando(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center p-20 gap-4">
@@ -84,15 +108,11 @@ function ProductoDetalle() {
 
   if (!producto) return null;
 
-  const esPropio = user?.id === producto.UsuarioID;
+  // Comparamos como números porque user.id puede ser string y UsuarioID es number
+  const esPropio = Number(user?.id) === Number(producto.UsuarioID);
 
-  const telefonoLimpio = producto.VendedorTelefono?.replace(/\D/g, "");
-  const mensajeWhatsApp = encodeURIComponent(
-    `Hola! Vi tu producto "${producto.NombreProducto}" en TecHub y me interesa. Sigue disponible?`
-  );
-  const linkWhatsApp = `https://wa.me/${telefonoLimpio}?text=${mensajeWhatsApp}`;
-
-  const valoracion = producto.VendedorValoracion;
+  // MySQL puede devolver AVG como string, lo parseamos a número
+  const valoracion = producto.VendedorValoracion != null ? parseFloat(String(producto.VendedorValoracion)) : null;
   const totalResenas = producto.VendedorTotalResenas ?? 0;
 
   return (
@@ -114,9 +134,9 @@ function ProductoDetalle() {
           <div className="h-80 md:h-full bg-muted relative overflow-hidden">
             {producto.ImagenPath ? (
               <img
-                src={`${API_URL}${producto.ImagenPath}`}
+                src={producto.ImagenPath?.startsWith("http") ? producto.ImagenPath : `${API_URL}${producto.ImagenPath}`}
                 alt={producto.NombreProducto}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain p-4"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-primary/5">
@@ -172,14 +192,21 @@ function ProductoDetalle() {
             {/* BOTON COMPRA */}
             {!esPropio && (
               <div className="mt-auto pt-4 border-t">
-                <a href={linkWhatsApp} target="_blank" rel="noopener noreferrer">
-                  <Button className="w-full gap-2 text-base h-12">
-                    <MessageCircle className="size-5" />
-                    Solicitar compra por WhatsApp
-                  </Button>
-                </a>
+                <Button
+                  className="w-full gap-2 text-base h-12"
+                  disabled={solicitando || solicitado}
+                  onClick={handleSolicitarCompra}
+                >
+                  {solicitando ? (
+                    <><Loader2 className="size-5 animate-spin" /> Enviando solicitud...</>
+                  ) : solicitado ? (
+                    <><CheckCircle className="size-5" /> Solicitud enviada</>
+                  ) : (
+                    <><MessageCircle className="size-5" /> Solicitar compra</>
+                  )}
+                </Button>
                 <p className="text-xs text-center text-muted-foreground mt-2">
-                  Te conectaremos directamente con el vendedor
+                  Se le notificara al vendedor tu interes
                 </p>
               </div>
             )}
@@ -214,6 +241,19 @@ function ProductoDetalle() {
             <p className="text-sm text-muted-foreground">Estudiante TEC</p>
           </div>
 
+          {/* Ver perfil — solo si no es el propio */}
+          {!esPropio && (
+            <Link
+              to="/app/usuario/$id"
+              params={{ id: String(producto.UsuarioID) }}
+              className="flex-shrink-0"
+            >
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <UserIcon className="size-4" /> Ver perfil
+              </Button>
+            </Link>
+          )}
+
           {/* VALORACION */}
           <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
             {valoracion !== null ? (
@@ -232,7 +272,7 @@ function ProductoDetalle() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   <span className="font-bold text-gray-700">{valoracion.toFixed(1)}</span>
-                  {" / 5.0 · "}{totalResenas} {totalResenas === 1 ? "resena" : "resenas"}
+                  {" / 5.0"}
                 </p>
               </>
             ) : (
@@ -242,7 +282,7 @@ function ProductoDetalle() {
                     <Star key={i} className="size-4 fill-gray-200 text-gray-200" />
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground">Sin resenas aun</p>
+
               </>
             )}
           </div>

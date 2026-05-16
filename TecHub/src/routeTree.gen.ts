@@ -24,16 +24,15 @@ import { Route as AppCategoriasRouteImport } from './routes/app.categorias'
 import { Route as AdminProductosRouteImport } from './routes/admin.productos'
 import { Route as AdminPerfilRouteImport } from './routes/admin.perfil'
 import { Route as AdminOrdenesRouteImport } from './routes/admin.ordenes'
+import { Route as AdminComentariosRouteImport } from './routes/admin.comentarios'
 import { Route as AdminCategoriasRouteImport } from './routes/admin.categorias'
 import { Route as AppPublicacionesIndexRouteImport } from './routes/app.publicaciones.index'
 import { Route as AppProductosIndexRouteImport } from './routes/app.productos.index'
-import { Route as AppVendedorIdRouteImport } from './routes/app.vendedor.$id'
-import { Route as AppPublicacionesNuevaRouteImport } from './routes/app.publicaciones.nueva'
+import { Route as AppUsuarioIdRouteImport } from './routes/app.usuario.$id'
 import { Route as AppProductosIdRouteImport } from './routes/app.productos.$id'
-import { Route as AdminUsuariosNuevoRouteImport } from './routes/admin.usuarios.nuevo'
-import { Route as AdminUsuariosIdRouteImport } from './routes/admin.usuarios.$id'
+import { Route as AppCalificarCompradorOrdenIDRouteImport } from './routes/app.calificarComprador.$ordenID'
+import { Route as AppCalificarOrdenIDRouteImport } from './routes/app.calificar.$ordenID'
 import { Route as AppPublicacionesEditarIdRouteImport } from './routes/app.publicaciones.editar.$id'
-import { Route as AdminUsuariosEditarIdRouteImport } from './routes/admin.usuarios.editar.$id'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -110,6 +109,11 @@ const AdminOrdenesRoute = AdminOrdenesRouteImport.update({
   path: '/ordenes',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminComentariosRoute = AdminComentariosRouteImport.update({
+  id: '/comentarios',
+  path: '/comentarios',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCategoriasRoute = AdminCategoriasRouteImport.update({
   id: '/categorias',
   path: '/categorias',
@@ -125,14 +129,9 @@ const AppProductosIndexRoute = AppProductosIndexRouteImport.update({
   path: '/productos/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppVendedorIdRoute = AppVendedorIdRouteImport.update({
-  id: '/vendedor/$id',
-  path: '/vendedor/$id',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppPublicacionesNuevaRoute = AppPublicacionesNuevaRouteImport.update({
-  id: '/publicaciones/nueva',
-  path: '/publicaciones/nueva',
+const AppUsuarioIdRoute = AppUsuarioIdRouteImport.update({
+  id: '/usuario/$id',
+  path: '/usuario/$id',
   getParentRoute: () => AppRoute,
 } as any)
 const AppProductosIdRoute = AppProductosIdRouteImport.update({
@@ -140,15 +139,16 @@ const AppProductosIdRoute = AppProductosIdRouteImport.update({
   path: '/productos/$id',
   getParentRoute: () => AppRoute,
 } as any)
-const AdminUsuariosNuevoRoute = AdminUsuariosNuevoRouteImport.update({
-  id: '/usuarios/nuevo',
-  path: '/usuarios/nuevo',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminUsuariosIdRoute = AdminUsuariosIdRouteImport.update({
-  id: '/usuarios/$id',
-  path: '/usuarios/$id',
-  getParentRoute: () => AdminRoute,
+const AppCalificarCompradorOrdenIDRoute =
+  AppCalificarCompradorOrdenIDRouteImport.update({
+    id: '/calificarComprador/$ordenID',
+    path: '/calificarComprador/$ordenID',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppCalificarOrdenIDRoute = AppCalificarOrdenIDRouteImport.update({
+  id: '/calificar/$ordenID',
+  path: '/calificar/$ordenID',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppPublicacionesEditarIdRoute =
   AppPublicacionesEditarIdRouteImport.update({
@@ -156,11 +156,6 @@ const AppPublicacionesEditarIdRoute =
     path: '/publicaciones/editar/$id',
     getParentRoute: () => AppRoute,
   } as any)
-const AdminUsuariosEditarIdRoute = AdminUsuariosEditarIdRouteImport.update({
-  id: '/usuarios/editar/$id',
-  path: '/usuarios/editar/$id',
-  getParentRoute: () => AdminRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -170,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/admin/categorias': typeof AdminCategoriasRoute
+  '/admin/comentarios': typeof AdminComentariosRoute
   '/admin/ordenes': typeof AdminOrdenesRoute
   '/admin/perfil': typeof AdminPerfilRoute
   '/admin/productos': typeof AdminProductosRoute
@@ -179,14 +175,12 @@ export interface FileRoutesByFullPath {
   '/app/perfil': typeof AppPerfilRoute
   '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
-  '/admin/usuarios/$id': typeof AdminUsuariosIdRoute
-  '/admin/usuarios/nuevo': typeof AdminUsuariosNuevoRoute
+  '/app/calificar/$ordenID': typeof AppCalificarOrdenIDRoute
+  '/app/calificarComprador/$ordenID': typeof AppCalificarCompradorOrdenIDRoute
   '/app/productos/$id': typeof AppProductosIdRoute
-  '/app/publicaciones/nueva': typeof AppPublicacionesNuevaRoute
-  '/app/vendedor/$id': typeof AppVendedorIdRoute
+  '/app/usuario/$id': typeof AppUsuarioIdRoute
   '/app/productos/': typeof AppProductosIndexRoute
   '/app/publicaciones/': typeof AppPublicacionesIndexRoute
-  '/admin/usuarios/editar/$id': typeof AdminUsuariosEditarIdRoute
   '/app/publicaciones/editar/$id': typeof AppPublicacionesEditarIdRoute
 }
 export interface FileRoutesByTo {
@@ -195,6 +189,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/admin/categorias': typeof AdminCategoriasRoute
+  '/admin/comentarios': typeof AdminComentariosRoute
   '/admin/ordenes': typeof AdminOrdenesRoute
   '/admin/perfil': typeof AdminPerfilRoute
   '/admin/productos': typeof AdminProductosRoute
@@ -204,14 +199,12 @@ export interface FileRoutesByTo {
   '/app/perfil': typeof AppPerfilRoute
   '/admin': typeof AdminIndexRoute
   '/app': typeof AppIndexRoute
-  '/admin/usuarios/$id': typeof AdminUsuariosIdRoute
-  '/admin/usuarios/nuevo': typeof AdminUsuariosNuevoRoute
+  '/app/calificar/$ordenID': typeof AppCalificarOrdenIDRoute
+  '/app/calificarComprador/$ordenID': typeof AppCalificarCompradorOrdenIDRoute
   '/app/productos/$id': typeof AppProductosIdRoute
-  '/app/publicaciones/nueva': typeof AppPublicacionesNuevaRoute
-  '/app/vendedor/$id': typeof AppVendedorIdRoute
+  '/app/usuario/$id': typeof AppUsuarioIdRoute
   '/app/productos': typeof AppProductosIndexRoute
   '/app/publicaciones': typeof AppPublicacionesIndexRoute
-  '/admin/usuarios/editar/$id': typeof AdminUsuariosEditarIdRoute
   '/app/publicaciones/editar/$id': typeof AppPublicacionesEditarIdRoute
 }
 export interface FileRoutesById {
@@ -223,6 +216,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/admin/categorias': typeof AdminCategoriasRoute
+  '/admin/comentarios': typeof AdminComentariosRoute
   '/admin/ordenes': typeof AdminOrdenesRoute
   '/admin/perfil': typeof AdminPerfilRoute
   '/admin/productos': typeof AdminProductosRoute
@@ -232,14 +226,12 @@ export interface FileRoutesById {
   '/app/perfil': typeof AppPerfilRoute
   '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
-  '/admin/usuarios/$id': typeof AdminUsuariosIdRoute
-  '/admin/usuarios/nuevo': typeof AdminUsuariosNuevoRoute
+  '/app/calificar/$ordenID': typeof AppCalificarOrdenIDRoute
+  '/app/calificarComprador/$ordenID': typeof AppCalificarCompradorOrdenIDRoute
   '/app/productos/$id': typeof AppProductosIdRoute
-  '/app/publicaciones/nueva': typeof AppPublicacionesNuevaRoute
-  '/app/vendedor/$id': typeof AppVendedorIdRoute
+  '/app/usuario/$id': typeof AppUsuarioIdRoute
   '/app/productos/': typeof AppProductosIndexRoute
   '/app/publicaciones/': typeof AppPublicacionesIndexRoute
-  '/admin/usuarios/editar/$id': typeof AdminUsuariosEditarIdRoute
   '/app/publicaciones/editar/$id': typeof AppPublicacionesEditarIdRoute
 }
 export interface FileRouteTypes {
@@ -252,6 +244,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/admin/categorias'
+    | '/admin/comentarios'
     | '/admin/ordenes'
     | '/admin/perfil'
     | '/admin/productos'
@@ -261,14 +254,12 @@ export interface FileRouteTypes {
     | '/app/perfil'
     | '/admin/'
     | '/app/'
-    | '/admin/usuarios/$id'
-    | '/admin/usuarios/nuevo'
+    | '/app/calificar/$ordenID'
+    | '/app/calificarComprador/$ordenID'
     | '/app/productos/$id'
-    | '/app/publicaciones/nueva'
-    | '/app/vendedor/$id'
+    | '/app/usuario/$id'
     | '/app/productos/'
     | '/app/publicaciones/'
-    | '/admin/usuarios/editar/$id'
     | '/app/publicaciones/editar/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -277,6 +268,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/admin/categorias'
+    | '/admin/comentarios'
     | '/admin/ordenes'
     | '/admin/perfil'
     | '/admin/productos'
@@ -286,14 +278,12 @@ export interface FileRouteTypes {
     | '/app/perfil'
     | '/admin'
     | '/app'
-    | '/admin/usuarios/$id'
-    | '/admin/usuarios/nuevo'
+    | '/app/calificar/$ordenID'
+    | '/app/calificarComprador/$ordenID'
     | '/app/productos/$id'
-    | '/app/publicaciones/nueva'
-    | '/app/vendedor/$id'
+    | '/app/usuario/$id'
     | '/app/productos'
     | '/app/publicaciones'
-    | '/admin/usuarios/editar/$id'
     | '/app/publicaciones/editar/$id'
   id:
     | '__root__'
@@ -304,6 +294,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/admin/categorias'
+    | '/admin/comentarios'
     | '/admin/ordenes'
     | '/admin/perfil'
     | '/admin/productos'
@@ -313,14 +304,12 @@ export interface FileRouteTypes {
     | '/app/perfil'
     | '/admin/'
     | '/app/'
-    | '/admin/usuarios/$id'
-    | '/admin/usuarios/nuevo'
+    | '/app/calificar/$ordenID'
+    | '/app/calificarComprador/$ordenID'
     | '/app/productos/$id'
-    | '/app/publicaciones/nueva'
-    | '/app/vendedor/$id'
+    | '/app/usuario/$id'
     | '/app/productos/'
     | '/app/publicaciones/'
-    | '/admin/usuarios/editar/$id'
     | '/app/publicaciones/editar/$id'
   fileRoutesById: FileRoutesById
 }
@@ -440,6 +429,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminOrdenesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/comentarios': {
+      id: '/admin/comentarios'
+      path: '/comentarios'
+      fullPath: '/admin/comentarios'
+      preLoaderRoute: typeof AdminComentariosRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/categorias': {
       id: '/admin/categorias'
       path: '/categorias'
@@ -461,18 +457,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProductosIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/vendedor/$id': {
-      id: '/app/vendedor/$id'
-      path: '/vendedor/$id'
-      fullPath: '/app/vendedor/$id'
-      preLoaderRoute: typeof AppVendedorIdRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/publicaciones/nueva': {
-      id: '/app/publicaciones/nueva'
-      path: '/publicaciones/nueva'
-      fullPath: '/app/publicaciones/nueva'
-      preLoaderRoute: typeof AppPublicacionesNuevaRouteImport
+    '/app/usuario/$id': {
+      id: '/app/usuario/$id'
+      path: '/usuario/$id'
+      fullPath: '/app/usuario/$id'
+      preLoaderRoute: typeof AppUsuarioIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/productos/$id': {
@@ -482,19 +471,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProductosIdRouteImport
       parentRoute: typeof AppRoute
     }
-    '/admin/usuarios/nuevo': {
-      id: '/admin/usuarios/nuevo'
-      path: '/usuarios/nuevo'
-      fullPath: '/admin/usuarios/nuevo'
-      preLoaderRoute: typeof AdminUsuariosNuevoRouteImport
-      parentRoute: typeof AdminRoute
+    '/app/calificarComprador/$ordenID': {
+      id: '/app/calificarComprador/$ordenID'
+      path: '/calificarComprador/$ordenID'
+      fullPath: '/app/calificarComprador/$ordenID'
+      preLoaderRoute: typeof AppCalificarCompradorOrdenIDRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/admin/usuarios/$id': {
-      id: '/admin/usuarios/$id'
-      path: '/usuarios/$id'
-      fullPath: '/admin/usuarios/$id'
-      preLoaderRoute: typeof AdminUsuariosIdRouteImport
-      parentRoute: typeof AdminRoute
+    '/app/calificar/$ordenID': {
+      id: '/app/calificar/$ordenID'
+      path: '/calificar/$ordenID'
+      fullPath: '/app/calificar/$ordenID'
+      preLoaderRoute: typeof AppCalificarOrdenIDRouteImport
+      parentRoute: typeof AppRoute
     }
     '/app/publicaciones/editar/$id': {
       id: '/app/publicaciones/editar/$id'
@@ -503,36 +492,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPublicacionesEditarIdRouteImport
       parentRoute: typeof AppRoute
     }
-    '/admin/usuarios/editar/$id': {
-      id: '/admin/usuarios/editar/$id'
-      path: '/usuarios/editar/$id'
-      fullPath: '/admin/usuarios/editar/$id'
-      preLoaderRoute: typeof AdminUsuariosEditarIdRouteImport
-      parentRoute: typeof AdminRoute
-    }
   }
 }
 
 interface AdminRouteChildren {
   AdminCategoriasRoute: typeof AdminCategoriasRoute
+  AdminComentariosRoute: typeof AdminComentariosRoute
   AdminOrdenesRoute: typeof AdminOrdenesRoute
   AdminPerfilRoute: typeof AdminPerfilRoute
   AdminProductosRoute: typeof AdminProductosRoute
   AdminIndexRoute: typeof AdminIndexRoute
-  AdminUsuariosIdRoute: typeof AdminUsuariosIdRoute
-  AdminUsuariosNuevoRoute: typeof AdminUsuariosNuevoRoute
-  AdminUsuariosEditarIdRoute: typeof AdminUsuariosEditarIdRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCategoriasRoute: AdminCategoriasRoute,
+  AdminComentariosRoute: AdminComentariosRoute,
   AdminOrdenesRoute: AdminOrdenesRoute,
   AdminPerfilRoute: AdminPerfilRoute,
   AdminProductosRoute: AdminProductosRoute,
   AdminIndexRoute: AdminIndexRoute,
-  AdminUsuariosIdRoute: AdminUsuariosIdRoute,
-  AdminUsuariosNuevoRoute: AdminUsuariosNuevoRoute,
-  AdminUsuariosEditarIdRoute: AdminUsuariosEditarIdRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -543,9 +521,10 @@ interface AppRouteChildren {
   AppOrdenesRoute: typeof AppOrdenesRoute
   AppPerfilRoute: typeof AppPerfilRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppCalificarOrdenIDRoute: typeof AppCalificarOrdenIDRoute
+  AppCalificarCompradorOrdenIDRoute: typeof AppCalificarCompradorOrdenIDRoute
   AppProductosIdRoute: typeof AppProductosIdRoute
-  AppPublicacionesNuevaRoute: typeof AppPublicacionesNuevaRoute
-  AppVendedorIdRoute: typeof AppVendedorIdRoute
+  AppUsuarioIdRoute: typeof AppUsuarioIdRoute
   AppProductosIndexRoute: typeof AppProductosIndexRoute
   AppPublicacionesIndexRoute: typeof AppPublicacionesIndexRoute
   AppPublicacionesEditarIdRoute: typeof AppPublicacionesEditarIdRoute
@@ -557,9 +536,10 @@ const AppRouteChildren: AppRouteChildren = {
   AppOrdenesRoute: AppOrdenesRoute,
   AppPerfilRoute: AppPerfilRoute,
   AppIndexRoute: AppIndexRoute,
+  AppCalificarOrdenIDRoute: AppCalificarOrdenIDRoute,
+  AppCalificarCompradorOrdenIDRoute: AppCalificarCompradorOrdenIDRoute,
   AppProductosIdRoute: AppProductosIdRoute,
-  AppPublicacionesNuevaRoute: AppPublicacionesNuevaRoute,
-  AppVendedorIdRoute: AppVendedorIdRoute,
+  AppUsuarioIdRoute: AppUsuarioIdRoute,
   AppProductosIndexRoute: AppProductosIndexRoute,
   AppPublicacionesIndexRoute: AppPublicacionesIndexRoute,
   AppPublicacionesEditarIdRoute: AppPublicacionesEditarIdRoute,
