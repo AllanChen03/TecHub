@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { verificarToken } = require('../middleware/auth');
-const registroController = require('../backend/controllers/usuarios/registroController');
-const usuarioController = require('../backend/controllers/usuarios/usuarioController');
+const registroController = require('../controllers/usuarios/registroController');
+const usuarioController = require('../controllers/usuarios/usuarioController');
 const productoController = require('../controllers/productoController');
 const categoriaController = require('../controllers/categoriaController');
 const ordenController = require('../controllers/ordenController');
 const publicacionesController = require('../controllers/publicacionesController');
-const notificacionesController = require('../backend/controllers/notificacionesController');
+const notificacionesController = require('../controllers/notificacionesController');
 const comentariosController = require('../controllers/comentariosController');
 
 
