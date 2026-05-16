@@ -50,7 +50,7 @@ const crearUsuario = async (req, res) => {
 
         try {
           const mailOptions = {
-            from: `"Equipo TecHub" <${process.env.EMAIL_USER}>`,
+            from: `"Equipo TecHub" <${process.env.EMAIL}>`,
             to: email,
             subject: 'Verifica tu cuenta en TecHub',
             html: `
@@ -186,7 +186,7 @@ const reenviarCodigoRegistro = (req, res) => {
         // 4. Enviamos el nuevo correo
         try {
           await transporter.sendMail({
-            from: `"Equipo TecHub" <${process.env.EMAIL_USER}>`,
+            from: `"Equipo TecHub" <${process.env.EMAIL}>`,
             to: email,
             subject: 'Tu nuevo código de verificación - TecHub',
             html: `<p>Hola, aquí tienes tu nuevo código: <b>${nuevoCodigo}</b>. Vence en 1 hora.</p>`

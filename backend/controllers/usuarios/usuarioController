@@ -85,7 +85,7 @@ const solicitarRecuperacion = (req, res) => {
         // 4. Enviamos el correo
         try {
           const mailOptions = {
-            from: `"Equipo TecHub" <${process.env.EMAIL_USER}>`,
+            from: `"Equipo TecHub" <${process.env.EMAIL}>`,
             to: email,
             subject: 'Recuperación de Contraseña - TecHub',
             html: `

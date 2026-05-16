@@ -124,7 +124,7 @@ const crearUsuario = async (req, res) => {
         // 7. Si se guardó en la BD, enviamos el correo electrónico
         try {
           const mailOptions = {
-            from: `"Equipo TecHub" <${process.env.EMAIL_USER}>`,
+            from: `"Equipo TecHub" <${process.env.EMAIL}>`,
             to: email,
             subject: 'Verifica tu cuenta en TecHub',
             html: `
