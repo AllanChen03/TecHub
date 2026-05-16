@@ -2,9 +2,9 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-const usuario = require('./routes/usuario');
-const admin = require('./routes/admin');
-const comentarios = require('./routes/comentarios');
+const usuario = require('./backend/routes/usuario');
+const admin = require('./backend/routes/admin');
+const comentarios = require('./backend/routes/comentarios');
 
 
 const app = express();
