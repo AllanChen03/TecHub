@@ -1,8 +1,0 @@
-{
-  "install": {
-    "cmds": ["npm ci"]
-  },
-  "start": {
-    "cmd": "node server.js"
-  }
-}
